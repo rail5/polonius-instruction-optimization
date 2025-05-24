@@ -17,7 +17,7 @@ Each optimization level will also apply all of the optimizations of the levels b
 The levels are as follows:
 
 - `-O0`: No optimization. This may be worth it for very small files, but I doubt it.
-- `-O1`: The default. This will apply theorems 0 and 1 (combination of `INSERT` and `REMOVE` instructions)
+- `-O1`: Apply theorems 0 and 1 (combination of `INSERT` instructions, and of `REMOVE` instructions)
 - `-O2`: Apply theorems 3 and 4 (elimination of redundant `INSERT`/`REMOVE` pairs)
 - `-O3`: Apply theorems 2, 5 and 6 (combination of `REPLACE` instructions, elimination of redundant `REPLACE` instructions)
 
