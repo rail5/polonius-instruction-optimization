@@ -1,0 +1,62 @@
+@include_once "TestStats.bpp"
+
+@class TestRunner {
+	@public @TestStats* stats=@new TestStats
+	@public tests=()
+
+	@public @method updateStats @Test* test {
+		if [[ @test == @nullptr ]]; then
+			echo "Error: test is null."
+			return 1
+		fi
+
+		case "@test.status" in
+			"untested")
+				@this.stats.incrementUntestedTests
+				;;
+			"passed")
+				@this.stats.incrementPassedTests
+				;;
+			"failed")
+				@this.stats.incrementFailedTests
+				;;
+			*)
+				echo "Error: Unknown test status '@test.status'."
+				return 1
+				;;
+		esac
+
+		@test.toPrimitive
+	}
+
+	@public @method addTest instruction_file expected_output_file input_file {
+		@Test* test=@new Test
+		@test.instruction_file="$instruction_file"
+		@test.expected_output_file="$expected_output_file"
+		@test.input_file="$input_file"
+		@test.stats=@this.stats
+
+		@this.tests+=("@test")
+	}
+
+	@public @method runAllTests optimization_level {
+		local numberOfCores=@(nproc)
+		local concurrentTests=$((numberOfCores / 2))
+		if [[ $concurrentTests -lt 1 ]]; then
+			concurrentTests=1
+		fi
+
+		for i in @(seq 0 $((@{#this.tests[@]} - 1))); do
+			@Test* test="@{this.tests[$i]}"
+			@test.run ${optimization_level} &
+			if [[ $((i % concurrentTests)) -eq 0 ]]; then
+				wait
+			fi
+		done
+		wait
+	}
+
+	@constructor {
+		@this.stats.init
+	}
+}

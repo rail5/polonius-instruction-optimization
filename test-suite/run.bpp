@@ -1,0 +1,47 @@
+#!/usr/bin/env bpp
+
+OPTIMIZER="../optimize"
+
+@include_once static "detect-tty.bpp"
+@include_once static "TestStats.bpp"
+@include_once static "Test.bpp"
+@include_once static "TestRunner.bpp"
+
+@TestRunner runner
+
+for file in "tests/instructions/"*; do
+	if [[ ! -f "$file" ]]; then
+		continue
+	fi
+
+	test_name="@(basename "$file")"
+
+	if [[ ! -f "tests/expected/$test_name" ]]; then
+		echo "Warning: No expected output file for test '$test_name'. Skipping."
+		continue
+	fi
+
+	test_input_file="tests/sources/$test_name"
+	if [[ ! -f "$test_input_file" ]]; then
+		test_input_file=""
+	fi
+
+	@runner.addTest "$file" "tests/expected/$test_name" "$test_input_file"
+done
+
+echo "Running tests..."
+echo ""----------------""
+echo "Optimization level: 0"
+echo "--"
+@runner.runAllTests 0
+echo "--"
+echo "Optimization level: 1"
+echo "--"
+@runner.runAllTests 1
+echo "--"
+echo "Optimization level: 2"
+echo "--"
+@runner.runAllTests 2
+echo "----------------"
+
+@runner.stats.toPrimitive
