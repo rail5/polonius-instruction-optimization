@@ -49,10 +49,13 @@ Expression Expression::operator+(Block block) {
 	std::deque<Block> replaces;
 	switch (optimization_level) {
 		default:
+			[[fallthrough]];
 		case 3:
+			[[fallthrough]];
 		case 2:
 			// Level 2 optimizations:
 			// Apply theorem #3 (eliminating redundant insert/remove pairs)
+			[[fallthrough]];
 		case 1:
 			// Level 1 optimizations:
 			// Apply theorem #0 (combining insert instructions)
@@ -86,6 +89,7 @@ Expression Expression::operator+(Block block) {
 			for (const auto& b : inserts) {
 				blocks.push_back(b);
 			}
+			[[fallthrough]];
 		case 0:
 			blocks.push_back(block);
 			break;
@@ -107,10 +111,13 @@ Expression Expression::operator-(Block block) {
 	std::deque<Block> replaces;
 	switch (optimization_level) {
 		default:
+			[[fallthrough]];
 		case 3:
+			[[fallthrough]];
 		case 2:
 			// Level 2 optimizations:
 			// Apply theorem #4 (eliminating redundant insert/remove pairs)
+			[[fallthrough]];
 		case 1:
 			// Level 1 optimizations:
 			// Apply theorem #1 (combining remove instructions)
@@ -154,6 +161,7 @@ Expression Expression::operator-(Block block) {
 			for (const auto& b : removes) {
 				blocks.push_back(b);
 			}
+			[[fallthrough]];
 		case 0:
 			blocks.push_back(block);
 			break;
@@ -169,9 +177,13 @@ Expression Expression::operator*(Block block) {
 	block.set_operator(REPLACE);
 	switch (optimization_level) {
 		default:
+			[[fallthrough]];
 		case 3:
+			[[fallthrough]];
 		case 2:
+			[[fallthrough]];
 		case 1:
+			[[fallthrough]];
 		case 0:
 			blocks.push_back(block);
 			break;
