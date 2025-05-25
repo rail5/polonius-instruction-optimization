@@ -42,7 +42,7 @@ void Expression::re_evaluate() {
 	}
 }
 
-Expression Expression::operator+(Block block) {
+void Expression::insert(Block block) {
 	block.set_operator(INSERT);
 	std::deque<Block> inserts;
 	std::deque<Block> removes;
@@ -101,10 +101,9 @@ Expression Expression::operator+(Block block) {
 	for (const auto& b : replaces) {
 		blocks.push_back(b);
 	}
-	return *this;
 }
 
-Expression Expression::operator-(Block block) {
+void Expression::remove(Block block) {
 	block.set_operator(REMOVE);
 	std::deque<Block> inserts;
 	std::deque<Block> removes;
@@ -170,10 +169,9 @@ Expression Expression::operator-(Block block) {
 	for (const auto& b : replaces) {
 		blocks.push_back(b);
 	}
-	return *this;
 }
 
-Expression Expression::operator*(Block block) {
+void Expression::replace(Block block) {
 	block.set_operator(REPLACE);
 	switch (optimization_level) {
 		default:
@@ -188,5 +186,19 @@ Expression Expression::operator*(Block block) {
 			blocks.push_back(block);
 			break;
 	}
+}
+
+Expression Expression::operator+(Block block) {
+	insert(block);
+	return *this;
+}
+
+Expression Expression::operator-(Block block) {
+	remove(block);
+	return *this;
+}
+
+Expression Expression::operator*(Block block) {
+	replace(block);
 	return *this;
 }
