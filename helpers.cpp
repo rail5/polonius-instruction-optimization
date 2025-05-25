@@ -109,15 +109,15 @@ bool parse_instruction(const std::string& instruction, Expression* expression) {
 	if (operation == "INSERT") {
 		Block block;
 		block.add(std::stoull(position), value);
-		*expression = *expression + block;
+		expression->insert(block);
 	} else if (operation == "REMOVE") {
 		Block block;
 		block.add(std::stoull(position), std::stoull(value));
-		*expression = *expression - block;
+		expression->remove(block);
 	} else if (operation == "REPLACE") {
 		Block block;
 		block.add(std::stoull(position), value);
-		*expression = *expression * block;
+		expression->replace(block);
 	} else {
 		std::cerr << "Unknown operation: " << operation << std::endl;
 		return false;
