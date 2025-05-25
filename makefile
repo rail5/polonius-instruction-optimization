@@ -1,7 +1,9 @@
 CXX = g++
 CXXFLAGS = -std=gnu++17 -O2 -s -Wall
 
+ifeq ($(filter -j%,$(MAKEFLAGS)),)
 MAKEFLAGS += -j$(shell nproc)
+endif
 
 all: block.o expression.o main.o test-suite/run.sh
 	$(CXX) $(CXXFLAGS) -o optimize block.o expression.o main.o

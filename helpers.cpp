@@ -1,3 +1,9 @@
+#include "block.h"
+#include "expression.h"
+#include <iostream>
+#include <sstream>
+#include <vector>
+
 std::vector<std::string> explode(std::string const &input, char delimiter, bool can_escape = false, int maximum_number_of_elements = 0) {
 	/***
 	vector<string> explode(string &input, char delimiter, bool can_escape, int maximum_number_of_elements):

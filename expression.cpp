@@ -37,9 +37,7 @@ Expression Expression::operator+(Block block) {
 						replaces.push_back(blocks[0]);
 						blocks.pop_front();
 						operators.pop_front();
-						if (replaces.back().start() <= block.start()) {
-							block.shift_right(replaces.back().size());
-						} else if (replaces.back().start() > block.start()) {
+						if (replaces.back().start() >= block.start()) {
 							replaces.back().shift_right(block.size());
 						}
 						break;
