@@ -5,6 +5,12 @@
 #include <vector>
 #include <algorithm>
 
+enum Operator {
+	ADD,
+	SUBTRACT,
+	MULTIPLY
+};
+
 /**
  * @class Block
  * @brief Represents a block of data with a start and end position.
@@ -47,9 +53,13 @@
 class Block {
 	private:
 		std::vector<std::pair<uint64_t, char>> data;
+		Operator op;
 
 	public:
 		std::vector<std::pair<uint64_t, char>> get_data() const;
+
+		void set_operator(Operator op);
+		Operator get_operator() const;
 
 		uint64_t size() const;
 		uint64_t start() const;

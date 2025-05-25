@@ -8,12 +8,6 @@
 
 #include "block.h"
 
-enum Operator {
-	ADD,
-	SUBTRACT,
-	MULTIPLY
-};
-
 /**
  * @class Expression
  * @brief Represents a mathematical expression with Blocks as its operands.
@@ -40,7 +34,6 @@ enum Operator {
 class Expression {
 	private:
 		std::deque<Block> blocks;
-		std::deque<Operator> operators;
 		uint8_t optimization_level = 0;
 
 		void re_evaluate();
@@ -57,9 +50,9 @@ class Expression {
 
 		std::string print_expression_as_instructions() const {
 			std::string result;
-			for (size_t i = 0; i < blocks.size(); i++) {
+			for (auto& block : blocks) {
 				bool is_remove = false;
-				switch (operators[i]) {
+				switch (block.get_operator()) {
 					case ADD:
 						result += "INSERT ";
 						break;
@@ -72,10 +65,10 @@ class Expression {
 						break;
 				}
 				if (is_remove) {
-					result += std::to_string(blocks[i].start()) + " " + std::to_string(blocks[i].end());
+					result += std::to_string(block.start()) + " " + std::to_string(block.end());
 				} else {
-					result += std::to_string(blocks[i].start()) + " ";
-					for (const auto& [position, value] : blocks[i].get_data()) {
+					result += std::to_string(block.start()) + " ";
+					for (const auto& [position, value] : block.get_data()) {
 						if (value == 0) {
 							result += "?";
 						} else {

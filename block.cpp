@@ -4,6 +4,14 @@ std::vector<std::pair<uint64_t, char>> Block::get_data() const {
 	return data;
 }
 
+void Block::set_operator(Operator op) {
+	this->op = op;
+}
+
+Operator Block::get_operator() const {
+	return op;
+}
+
 uint64_t Block::size() const {
 	return data.size();
 }
