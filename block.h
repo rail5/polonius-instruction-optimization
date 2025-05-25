@@ -44,26 +44,30 @@
  * 		Subtraction = Remove instructions
  * 		Multiplication = Replace instructions
  */
-struct Block {
-	std::vector<std::pair<uint64_t, char>> data;
+class Block {
+	private:
+		std::vector<std::pair<uint64_t, char>> data;
 
-	uint64_t size() const;
-	uint64_t start() const;
-	uint64_t end() const;
+	public:
+		std::vector<std::pair<uint64_t, char>> get_data() const;
 
-	char at(uint64_t index) const;
+		uint64_t size() const;
+		uint64_t start() const;
+		uint64_t end() const;
 
-	void add(uint64_t start_position, const std::string& value);
-	void add(uint64_t start_position, uint64_t end_position);
+		char at(uint64_t index) const;
 
-	void remove(uint64_t start_position, uint64_t end_position);
+		void add(uint64_t start_position, const std::string& value);
+		void add(uint64_t start_position, uint64_t end_position);
 
-	bool shift_left(uint64_t shift_amount);
-	bool shift_right(uint64_t shift_amount);
+		void remove(uint64_t start_position, uint64_t end_position);
 
-	bool empty() const;
-	
-	std::pair<uint64_t, uint64_t> overlap(const Block& b) const;
+		bool shift_left(uint64_t shift_amount);
+		bool shift_right(uint64_t shift_amount);
+
+		bool empty() const;
+		
+		std::pair<uint64_t, uint64_t> overlap(const Block& b) const;
 };
 
 #endif // BLOCK_H

@@ -1,5 +1,9 @@
 #include "block.h"
 
+std::vector<std::pair<uint64_t, char>> Block::get_data() const {
+	return data;
+}
+
 uint64_t Block::size() const {
 	return data.size();
 }

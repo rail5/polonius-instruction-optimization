@@ -55,34 +55,6 @@ class Expression {
 
 		void set_optimization_level(uint8_t level);
 
-		// Temporary functions for debugging
-		std::string print_expression() const {
-			std::string result;
-			for (size_t i = 0; i < blocks.size(); i++) {
-				switch (operators[i]) {
-					case ADD:
-						result += "+ ";
-						break;
-					case SUBTRACT:
-						result += "- ";
-						break;
-					case MULTIPLY:
-						result += "* ";
-						break;
-				}
-				for (const auto& [position, value] : blocks[i].data) {
-					result += std::to_string(position) + "[";
-					if (value == 0) {
-						result += "?";
-					} else {
-						result += value;
-					}
-					result += "] ";
-				}
-			}
-			return result;
-		}
-
 		std::string print_expression_as_instructions() const {
 			std::string result;
 			for (size_t i = 0; i < blocks.size(); i++) {
@@ -103,7 +75,7 @@ class Expression {
 					result += std::to_string(blocks[i].start()) + " " + std::to_string(blocks[i].end());
 				} else {
 					result += std::to_string(blocks[i].start()) + " ";
-					for (const auto& [position, value] : blocks[i].data) {
+					for (const auto& [position, value] : blocks[i].get_data()) {
 						if (value == 0) {
 							result += "?";
 						} else {
