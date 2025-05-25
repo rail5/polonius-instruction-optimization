@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <algorithm>
 
 /**
  * @class Block
@@ -50,11 +51,19 @@ struct Block {
 	uint64_t start() const;
 	uint64_t end() const;
 
+	char at(uint64_t index) const;
+
 	void add(uint64_t start_position, const std::string& value);
 	void add(uint64_t start_position, uint64_t end_position);
 
+	void remove(uint64_t start_position, uint64_t end_position);
+
 	bool shift_left(uint64_t shift_amount);
 	bool shift_right(uint64_t shift_amount);
+
+	bool empty() const;
+	
+	std::pair<uint64_t, uint64_t> overlap(const Block& b) const;
 };
 
 #endif // BLOCK_H
