@@ -4,11 +4,11 @@ std::vector<std::pair<uint64_t, char>> Block::get_data() const {
 	return data;
 }
 
-void Block::set_operator(Operator op) {
+void Block::set_operator(InstructionType op) {
 	this->op = op;
 }
 
-Operator Block::get_operator() const {
+InstructionType Block::get_operator() const {
 	return op;
 }
 

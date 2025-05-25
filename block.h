@@ -5,10 +5,10 @@
 #include <vector>
 #include <algorithm>
 
-enum Operator {
-	ADD,
-	SUBTRACT,
-	MULTIPLY
+enum InstructionType {
+	INSERT,
+	REMOVE,
+	REPLACE
 };
 
 /**
@@ -53,13 +53,13 @@ enum Operator {
 class Block {
 	private:
 		std::vector<std::pair<uint64_t, char>> data;
-		Operator op;
+		InstructionType op;
 
 	public:
 		std::vector<std::pair<uint64_t, char>> get_data() const;
 
-		void set_operator(Operator op);
-		Operator get_operator() const;
+		void set_operator(InstructionType op);
+		InstructionType get_operator() const;
 
 		uint64_t size() const;
 		uint64_t start() const;

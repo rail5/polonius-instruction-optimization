@@ -29,13 +29,13 @@ void Expression::re_evaluate() {
 
 	for (auto& block : blocks_copy) {
 		switch (block.get_operator()) {
-			case ADD:
+			case INSERT:
 				*this + block;
 				break;
-			case SUBTRACT:
+			case REMOVE:
 				*this - block;
 				break;
-			case MULTIPLY:
+			case REPLACE:
 				*this * block;
 				break;
 		}
@@ -43,7 +43,7 @@ void Expression::re_evaluate() {
 }
 
 Expression Expression::operator+(Block block) {
-	block.set_operator(ADD);
+	block.set_operator(INSERT);
 	std::deque<Block> inserts;
 	std::deque<Block> removes;
 	std::deque<Block> replaces;
@@ -61,11 +61,11 @@ Expression Expression::operator+(Block block) {
 			// So that we can execute all of them on a single pass-through
 			while (blocks.size() > 0) {
 				switch (blocks[0].get_operator()) {
-					case ADD:
+					case INSERT:
 						inserts.push_back(blocks[0]);
 						blocks.pop_front();
 						break;
-					case SUBTRACT:
+					case REMOVE:
 						removes.push_back(blocks[0]);
 						blocks.pop_front();
 						if (removes.back().start() <= block.start()) {
@@ -74,7 +74,7 @@ Expression Expression::operator+(Block block) {
 							removes.back().shift_right(block.size());
 						}
 						break;
-					case MULTIPLY:
+					case REPLACE:
 						replaces.push_back(blocks[0]);
 						blocks.pop_front();
 						if (replaces.back().start() >= block.start()) {
@@ -101,7 +101,7 @@ Expression Expression::operator+(Block block) {
 }
 
 Expression Expression::operator-(Block block) {
-	block.set_operator(SUBTRACT);
+	block.set_operator(REMOVE);
 	std::deque<Block> inserts;
 	std::deque<Block> removes;
 	std::deque<Block> replaces;
@@ -119,15 +119,15 @@ Expression Expression::operator-(Block block) {
 			while (blocks.size() > 0) {
 				std::pair<uint64_t, uint64_t> overlap;
 				switch (blocks[0].get_operator()) {
-					case ADD:
+					case INSERT:
 						inserts.push_back(blocks[0]);
 						blocks.pop_front();
 						break;
-					case SUBTRACT:
+					case REMOVE:
 						removes.push_back(blocks[0]);
 						blocks.pop_front();
 						break;
-					case MULTIPLY:
+					case REPLACE:
 						replaces.push_back(blocks[0]);
 						blocks.pop_front();
 						overlap = replaces.back().overlap(block);
@@ -166,7 +166,7 @@ Expression Expression::operator-(Block block) {
 }
 
 Expression Expression::operator*(Block block) {
-	block.set_operator(MULTIPLY);
+	block.set_operator(REPLACE);
 	switch (optimization_level) {
 		default:
 		case 3:

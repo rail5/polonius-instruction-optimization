@@ -53,14 +53,14 @@ class Expression {
 			for (auto& block : blocks) {
 				bool is_remove = false;
 				switch (block.get_operator()) {
-					case ADD:
+					case INSERT:
 						result += "INSERT ";
 						break;
-					case SUBTRACT:
+					case REMOVE:
 						result += "REMOVE ";
 						is_remove = true;
 						break;
-					case MULTIPLY:
+					case REPLACE:
 						result += "REPLACE ";
 						break;
 				}
