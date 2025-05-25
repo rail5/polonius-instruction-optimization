@@ -2,6 +2,47 @@
 
 Expression::Expression() = default;
 
+Expression::Expression(uint8_t optimization_level) {
+	this->optimization_level = optimization_level;
+}
+
+
+void Expression::set_optimization_level(uint8_t level) {
+	optimization_level = level;
+
+	if (!blocks.empty()) {
+		// If we change the optimization level, we need to re-evaluate the expression
+		// If we don't do this, the expression will not be optimized correctly when we add more terms
+		// (And will become, in fact, an incorrect and potentially invalid expression)
+		// E.g, if we've *been* optimizing according to -O1,
+		// And we now set the optimization level to -O2,
+		// We need to re-evaluate the expression to apply the new optimizations from the beginning
+		re_evaluate();
+	}
+}
+
+void Expression::re_evaluate() {
+	// Re-evaluate the entire expression
+
+	std::deque<Block> blocks_copy = blocks;
+	blocks.clear();
+	std::deque<Operator> operators_copy = operators;
+	operators.clear();
+	for (size_t i = 0; i < blocks_copy.size(); i++) {
+		switch (operators_copy[i]) {
+			case ADD:
+				*this + blocks_copy[i];
+				break;
+			case SUBTRACT:
+				*this - blocks_copy[i];
+				break;
+			case MULTIPLY:
+				*this * blocks_copy[i];
+				break;
+		}
+	}
+}
+
 Expression Expression::operator+(Block block) {
 	std::deque<Block> inserts;
 	std::deque<Block> removes;

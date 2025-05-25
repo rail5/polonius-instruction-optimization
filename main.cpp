@@ -14,7 +14,7 @@ int main(int argc, char* argv[]) {
 	while ((opt = getopt(argc, argv, "O:s:")) != -1) {
 		switch (opt) {
 			case 'O':
-				expression.optimization_level = static_cast<uint8_t>(std::stoi(optarg));
+				expression.set_optimization_level(static_cast<uint8_t>(std::stoi(optarg)));
 				break;
 			case 's':
 				// Interpret instruction sequence

@@ -41,15 +41,19 @@ class Expression {
 	private:
 		std::deque<Block> blocks;
 		std::deque<Operator> operators;
+		uint8_t optimization_level = 0;
+
+		void re_evaluate();
 	public:
 		Expression();
-
-		uint8_t optimization_level = 0;
+		explicit Expression(uint8_t optimization_level);
 
 		// Operator overloads
 		Expression operator+(Block block);
 		Expression operator-(Block block);
 		Expression operator*(Block block);
+
+		void set_optimization_level(uint8_t level);
 
 		// Temporary functions for debugging
 		std::string print_expression() const {
