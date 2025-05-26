@@ -146,7 +146,20 @@ void Expression::remove(Block block) {
 						} else if (overlap != std::pair<uint64_t, uint64_t>(0, 0)) {
 							// Remove the overlapping portion of the REPLACE instruction
 							// And left-shift any remaining portion *after* the overlap
+							// E.g, if the REPLACE block was:
+							// 		7	8	9	10	11
+							// 		a	b	c	d	e
+							// And the REMOVE block removed characters 8 to 10,
+							// The REPLACE block would become:
+							// 		7	8
+							// 		a	e
+							// Note that the 'e' moved in this example from position 11 to position 8.
+
 							replaces.back().remove_and_shift(overlap.first, overlap.second);
+							// Simply calling 'remove()' instead of 'remove_and_shift()' would not work here,
+							// Because the 'e' would remain at position 11
+							// 'remove_and_shift()' collapses the block after removing the overlapping portion
+
 							if (replaces.back().empty()) {
 								// If the REPLACE instruction is now empty, remove it
 								replaces.pop_back();
