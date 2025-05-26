@@ -30,13 +30,13 @@ void Expression::re_evaluate() {
 	for (auto& block : blocks_copy) {
 		switch (block.get_operator()) {
 			case INSERT:
-				*this + block;
+				insert(block);
 				break;
 			case REMOVE:
-				*this - block;
+				remove(block);
 				break;
 			case REPLACE:
-				*this * block;
+				replace(block);
 				break;
 		}
 	}
