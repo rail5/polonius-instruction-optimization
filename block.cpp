@@ -74,6 +74,16 @@ void Block::remove(uint64_t start_position, uint64_t end_position) {
 		}), data.end());
 }
 
+void Block::remove_and_shift(uint64_t start_position, uint64_t end_position) {
+	remove(start_position, end_position);
+	// Left-shift everything after the removed range
+	for (auto& pair : data) {
+		if (pair.first > end_position) {
+			pair.first -= (end_position - start_position + 1);
+		}
+	}
+}
+
 bool Block::shift_left(uint64_t shift_amount) {
 	if (data.empty()) {
 		return false;

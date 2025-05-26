@@ -71,6 +71,7 @@ class Block {
 		void add(uint64_t start_position, uint64_t end_position);
 
 		void remove(uint64_t start_position, uint64_t end_position);
+		void remove_and_shift(uint64_t start_position, uint64_t end_position);
 
 		bool shift_left(uint64_t shift_amount);
 		bool shift_right(uint64_t shift_amount);
