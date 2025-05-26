@@ -62,6 +62,18 @@ void Block::add(uint64_t start_position, uint64_t end_position) {
 	}
 }
 
+/**
+ * @brief Removes elements in the specified range from the block.
+ * 
+ * This may result in a non-contiguous block.
+ * For example, if the block contains:
+ * 		0	1	2	3	4
+ * 		a	b	c	d	e
+ * And we remove the range 1 to 3, the block will contain:
+ * 		0	4
+ * 		a	e
+ * Which is not contiguous.
+ */
 void Block::remove(uint64_t start_position, uint64_t end_position) {
 	if (data.empty()) {
 		return;
@@ -74,6 +86,21 @@ void Block::remove(uint64_t start_position, uint64_t end_position) {
 		}), data.end());
 }
 
+/**
+ * @brief Removes elements in the specified range while guaranteeing that the block remains contiguous.
+ * 
+ * This function removes the specified range and then shifts all subsequent elements to the left.
+ * This way, the block remains contiguous after the removal.
+ * 
+ * For example, if the block contains:
+ * 		0	1	2	3	4
+ * 		a	b	c	d	e
+ * And we remove the range 1 to 3, the block will contain:
+ * 		0	2
+ * 		a	e
+ * 
+ * The 'e' was moved from 4 to 2, ensuring that the block remains contiguous.
+ */
 void Block::remove_and_shift(uint64_t start_position, uint64_t end_position) {
 	remove(start_position, end_position);
 	// Left-shift everything after the removed range
