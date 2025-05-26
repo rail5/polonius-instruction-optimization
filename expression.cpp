@@ -47,6 +47,7 @@ void Expression::insert(Block block) {
 	std::deque<Block> inserts;
 	std::deque<Block> removes;
 	std::deque<Block> replaces;
+	uint64_t original_start = block.start();
 	switch (optimization_level) {
 		default:
 			[[fallthrough]];
@@ -80,7 +81,7 @@ void Expression::insert(Block block) {
 					case REPLACE:
 						replaces.push_back(blocks[0]);
 						blocks.pop_front();
-						if (replaces.back().start() >= block.start()) {
+						if (replaces.back().start() >= original_start) {
 							replaces.back().shift_right(block.size());
 						}
 						break;
@@ -91,7 +92,9 @@ void Expression::insert(Block block) {
 			}
 			[[fallthrough]];
 		case 0:
-			blocks.push_back(block);
+			if (!block.empty()) {
+				blocks.push_back(block);
+			}
 			break;
 	}
 	// Copy 'removes' and 'replaces' to the main blocks vector
@@ -162,7 +165,9 @@ void Expression::remove(Block block) {
 			}
 			[[fallthrough]];
 		case 0:
-			blocks.push_back(block);
+			if (!block.empty()) {
+				blocks.push_back(block);
+			}
 			break;
 	}
 	// Copy 'replaces' to the main blocks vector
@@ -183,7 +188,9 @@ void Expression::replace(Block block) {
 		case 1:
 			[[fallthrough]];
 		case 0:
-			blocks.push_back(block);
+			if (!block.empty()) {
+				blocks.push_back(block);
+			}
 			break;
 	}
 }
