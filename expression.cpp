@@ -73,9 +73,9 @@ void Expression::insert(Block block) {
 					case REMOVE:
 						removes.push_back(blocks[0]);
 						blocks.pop_front();
-						if (removes.back().start() <= block.start()) {
+						if (removes.back().start() <= original_start) {
 							block.shift_right(removes.back().size());
-						} else if (removes.back().start() > block.start()) {
+						} else if (removes.back().start() > original_start) {
 							removes.back().shift_right(block.size());
 						}
 						break;
