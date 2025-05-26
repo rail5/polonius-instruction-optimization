@@ -1,4 +1,5 @@
 #include "expression.h"
+#include <iostream>
 
 Expression::Expression() = default;
 
@@ -145,13 +146,38 @@ void Expression::remove(Block block) {
 						} else if (overlap != std::pair<uint64_t, uint64_t>(0, 0)) {
 							// Remove the overlapping portion of the REPLACE instruction
 							replaces.back().remove(overlap.first, overlap.second);
-							if (replaces.back().empty()) {
-								// If the REPLACE instruction is now empty, remove it
-								replaces.pop_back();
-							} else {
-								// If it's not empty, shift it left to compensate for the removed portion
-								// (Since this replace will be put *after* the REMOVE instruction)
-								replaces.back().shift_left(overlap.second - overlap.first + 1);
+							// Remove the REPLACE instruction
+							Block original_replace = replaces.back();
+							replaces.pop_back();
+							// If it's not empty:
+							// It may be the case that the REMOVE instruction cut out the middle of this REPLACE (roughly speaking)
+							// Or, it may be the case that the REMOVE instruction cut out the end of this REPLACE,
+							// Or finally, it may be the case that the REMOVE instruction cut out the beginning of this REPLACE
+							// The important point is this:
+							// If there is any more to the REPLACE instruction *to the right* of the overlap,
+							// That portion needs to be left-shifted by the size of the overlap between the two instructions
+							// Therefore: split the REPLACE instruction into two REPLACEs
+							// One to the left of the overlap, and one to the right of the overlap
+							// And shift the right-hand side leftwards
+
+							// If the original replace is now *empty* after our previous operations,
+							// Neither of the two following branches will execute anyway,
+							// And the REPLACE instruction will simply be removed from the expression
+							// (As is proper)
+							if (overlap.first > original_replace.start()) {
+								Block left_replace = original_replace;
+								left_replace.remove(overlap.first, original_replace.end());
+								if (!left_replace.empty()) {
+									replaces.push_back(left_replace);
+								}
+							}
+							if (overlap.second < original_replace.end()) {
+								Block right_replace = original_replace;
+								right_replace.remove(original_replace.start(), overlap.second);
+								right_replace.shift_left(overlap.second - overlap.first + 1);
+								if (!right_replace.empty()) {
+									replaces.push_back(right_replace);
+								}
 							}
 						}
 						break;
