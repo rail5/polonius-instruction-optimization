@@ -3,6 +3,7 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
+#include <fstream>
 
 std::vector<std::string> explode(std::string const &input, char delimiter, bool can_escape = false, int maximum_number_of_elements = 0) {
 	/***
@@ -89,8 +90,15 @@ std::vector<std::string> explode(std::string const &input, char delimiter, bool 
 	return output_vector;
 }
 
+static uint64_t step_counter = 0;
+static std::string original_sequence = "";
+
 bool parse_instruction(const std::string& instruction, Expression* expression) {
+	extern uint64_t step_counter;
+	extern std::string original_sequence;
+	extern bool debug;
 	std::vector<std::string> parts = explode(instruction, ' ', true, 3);
+	step_counter++;
 
 	if (parts.size() != 3) {
 		std::cerr << "Invalid instruction: " << instruction << std::endl;
@@ -106,6 +114,11 @@ bool parse_instruction(const std::string& instruction, Expression* expression) {
 	std::string position = parts[1];
 	std::string value = parts[2];
 
+	if (debug) {
+		std::cout << "		ADDING INSTRUCTION: " << instruction << std::endl;
+		original_sequence += instruction + "\n";
+	}
+	
 	if (operation == "INSERT") {
 		Block block;
 		block.add(std::stoull(position), value);
@@ -122,6 +135,31 @@ bool parse_instruction(const std::string& instruction, Expression* expression) {
 		std::cerr << "Unknown operation: " << operation << std::endl;
 		return false;
 	}
+	if (debug) {
+		std::cout << "		INSTRUCTION SEQUENCE AT STEP " << step_counter << ":"
+			<< std::endl
+			<< *expression
+			<< std::endl;
+		
+		// Write the original sequence to a new file
+		std::ofstream output_file("debug/original-" + std::to_string(step_counter) + ".txt", std::ios::trunc);
+		if (!output_file) {
+			std::cerr << "Failed to open output file for writing." << std::endl;
+			return false;
+		}
+		output_file << original_sequence;
+		output_file.close();
+
+		// Write the current expression to a new file
+		std::ofstream expression_file("debug/optimized-" + std::to_string(step_counter) + ".txt", std::ios::trunc);
+		if (!expression_file) {
+			std::cerr << "Failed to open expression file for writing." << std::endl;
+			return false;
+		}
+		expression_file << expression->print_expression_as_instructions();
+		expression_file.close();
+	}
+	
 	return true;
 }
 

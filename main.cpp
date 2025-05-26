@@ -5,13 +5,15 @@
 #include <string>
 #include <getopt.h>
 
+static bool debug = false;
+
 #include "helpers.cpp"
 
 int main(int argc, char* argv[]) {
 	Expression expression;
 	// getopt
 	int opt;
-	while ((opt = getopt(argc, argv, "O:s:")) != -1) {
+	while ((opt = getopt(argc, argv, "O:s:d")) != -1) {
 		switch (opt) {
 			case 'O':
 				expression.set_optimization_level(static_cast<uint8_t>(std::stoi(optarg)));
@@ -20,6 +22,14 @@ int main(int argc, char* argv[]) {
 				// Interpret instruction sequence
 				if (!parse_instruction_sequence(optarg, &expression)) {
 					std::cerr << "Failed to parse instruction sequence: " << optarg << std::endl;
+					return 1;
+				}
+				break;
+			case 'd':
+				debug = true;
+				// Remove all *.txt files under the 'debug' directory
+				if (system("rm -f debug/*.txt") != 0) {
+					std::cerr << "Failed to remove files in 'steps' directory." << std::endl;
 					return 1;
 				}
 				break;
@@ -64,5 +74,7 @@ int main(int argc, char* argv[]) {
 	 * 			REPLACE 8 buddy
 	 */
 
-	std::cout << expression << std::endl;
+	if (!debug) {
+		std::cout << expression << std::endl;
+	}
 }

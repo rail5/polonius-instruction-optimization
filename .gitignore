@@ -1,3 +1,4 @@
 *.o
 optimize
 test-suite/run.sh
+debug/*.txt
