@@ -175,3 +175,30 @@ std::pair<uint64_t, uint64_t> Block::overlap(const Block& b) const {
 	}
 	return std::pair<uint64_t, uint64_t>(start_overlap, end_overlap);
 }
+
+/**
+ * @brief Calculates the overlap of this block with a specified range.
+ * 
+ * Just like the previous function, but instead of pulling the range from another block,
+ * it takes a start and end position as parameters.
+ * 
+ * For example:
+ * If this block is:
+ * 		5	6	7	8	9
+ * 		a	b	c	d	e
+ * And the range is 0 to 7,
+ * the overlap will be between positions 5 and 7.
+ */
+std::pair<uint64_t, uint64_t> Block::overlap(uint64_t start_position, uint64_t end_position) const {
+	if (empty()) {
+		return std::pair<uint64_t, uint64_t>(0, 0);
+	}
+
+	uint64_t start_overlap = 0;
+	uint64_t end_overlap = 0;
+	if (start() <= end_position && end() >= start_position) {
+		start_overlap = std::max(start(), start_position);
+		end_overlap = std::min(end(), end_position);
+	}
+	return std::pair<uint64_t, uint64_t>(start_overlap, end_overlap);
+}

@@ -79,6 +79,7 @@ class Block {
 		bool empty() const;
 		
 		std::pair<uint64_t, uint64_t> overlap(const Block& b) const;
+		std::pair<uint64_t, uint64_t> overlap(uint64_t start_position, uint64_t end_position) const;
 };
 
 #endif // BLOCK_H
