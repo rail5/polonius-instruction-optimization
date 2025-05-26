@@ -65,6 +65,7 @@ void Expression::insert(Block block) {
 			// We just need to put all the insert instructions next to each other
 			// So that we can execute all of them on a single pass-through
 			while (blocks.size() > 0) {
+				std::pair<uint64_t, uint64_t> overlap = std::pair<uint64_t, uint64_t>(0, 0);
 				switch (blocks[0].get_operator()) {
 					case INSERT:
 						inserts.push_back(blocks[0]);
@@ -82,8 +83,29 @@ void Expression::insert(Block block) {
 					case REPLACE:
 						replaces.push_back(blocks[0]);
 						blocks.pop_front();
+						overlap = replaces.back().overlap(original_start, original_start + block.size() - 1);
 						if (replaces.back().start() >= original_start) {
 							replaces.back().shift_right(block.size());
+						} else if (overlap != std::pair<uint64_t, uint64_t>(0, 0)) {
+							// Split the REPLACE block into two parts:
+							// 1. The part before the overlap
+							// 2. The part after the overlap
+							// And right-shift the part after the overlap by the size of the overlap
+							Block before_overlap = replaces.back();
+							Block after_overlap = replaces.back();
+							before_overlap.remove(overlap.first, replaces.back().end());
+							after_overlap.remove(replaces.back().start(), overlap.first - 1);
+
+							replaces.pop_back();
+
+							if (!before_overlap.empty()) {
+								replaces.push_back(before_overlap);
+							}
+
+							if (!after_overlap.empty()) {
+								after_overlap.shift_right(overlap.second - overlap.first + 1);
+								replaces.push_back(after_overlap);
+							}
 						}
 						break;
 				}
