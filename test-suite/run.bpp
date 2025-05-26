@@ -30,18 +30,13 @@ for file in "tests/instructions/"*; do
 done
 
 echo "Running tests..."
-echo ""----------------""
-echo "Optimization level: 0"
-echo "--"
-@runner.runAllTests 0
-echo "--"
-echo "Optimization level: 1"
-echo "--"
-@runner.runAllTests 1
-echo "--"
-echo "Optimization level: 2"
-echo "--"
-@runner.runAllTests 2
+echo "----------------"
+for i in @(seq 0 1); do
+	echo "Optimization level: $i"
+	echo "--"
+	@runner.runAllTests $i
+	echo "--"
+done
 echo "----------------"
 
 @runner.stats.toPrimitive
