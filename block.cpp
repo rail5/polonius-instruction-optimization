@@ -162,18 +162,21 @@ bool Block::empty() const {
  * and the second element is the end of the overlap.
  * If there is no overlap, both elements will be 0.
  */
-std::pair<uint64_t, uint64_t> Block::overlap(const Block& b) const {
+BlockOverlap Block::overlap(const Block& b) const {
+	BlockOverlap result;
+	result.empty = true;
+
 	if (empty() || b.empty()) {
-		return std::pair<uint64_t, uint64_t>(0, 0);
+		return result;
 	}
 
-	uint64_t start_overlap = 0;
-	uint64_t end_overlap = 0;
 	if (start() <= b.end() && end() >= b.start()) {
-		start_overlap = std::max(start(), b.start());
-		end_overlap = std::min(end(), b.end());
+		result.start = std::max(start(), b.start());
+		result.end = std::min(end(), b.end());
+		result.empty = false;
 	}
-	return std::pair<uint64_t, uint64_t>(start_overlap, end_overlap);
+
+	return result;
 }
 
 /**
@@ -189,16 +192,17 @@ std::pair<uint64_t, uint64_t> Block::overlap(const Block& b) const {
  * And the range is 0 to 7,
  * the overlap will be between positions 5 and 7.
  */
-std::pair<uint64_t, uint64_t> Block::overlap(uint64_t start_position, uint64_t end_position) const {
+BlockOverlap Block::overlap(uint64_t start_position, uint64_t end_position) const {
+	BlockOverlap result;
+	result.empty = true;
 	if (empty()) {
-		return std::pair<uint64_t, uint64_t>(0, 0);
+		return result;
 	}
 
-	uint64_t start_overlap = 0;
-	uint64_t end_overlap = 0;
 	if (start() <= end_position && end() >= start_position) {
-		start_overlap = std::max(start(), start_position);
-		end_overlap = std::min(end(), end_position);
+		result.start = std::max(start(), start_position);
+		result.end = std::min(end(), end_position);
+		result.empty = false;
 	}
-	return std::pair<uint64_t, uint64_t>(start_overlap, end_overlap);
+	return result;
 }

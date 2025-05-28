@@ -11,6 +11,12 @@ enum InstructionType {
 	REPLACE
 };
 
+struct BlockOverlap {
+	uint64_t start = 0;
+	uint64_t end = 0;
+	bool empty = true;
+};
+
 /**
  * @class Block
  * @brief Represents a block of data with a start and end position.
@@ -78,8 +84,8 @@ class Block {
 
 		bool empty() const;
 		
-		std::pair<uint64_t, uint64_t> overlap(const Block& b) const;
-		std::pair<uint64_t, uint64_t> overlap(uint64_t start_position, uint64_t end_position) const;
+		BlockOverlap overlap(const Block& b) const;
+		BlockOverlap overlap(uint64_t start_position, uint64_t end_position) const;
 };
 
 #endif // BLOCK_H

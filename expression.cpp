@@ -72,7 +72,7 @@ void Expression::insert(Block block) {
 			// So let's move this one on up to the end of the INSERT instructions
 			while (!blocks.empty() && blocks.back().get_operator() != INSERT) {
 				std::unique_ptr<Block> last = std::make_unique<Block>(blocks.back());
-				std::pair<uint64_t, uint64_t> overlap = std::pair<uint64_t, uint64_t>(0, 0);
+				BlockOverlap overlap;
 				switch (last->get_operator()) {
 					case INSERT:
 						// This case will never execute
@@ -89,11 +89,11 @@ void Expression::insert(Block block) {
 						break;
 					case REPLACE:
 						overlap = last->overlap(block);
-						if (overlap != std::pair<uint64_t, uint64_t>(0, 0)) {
+						if (!overlap.empty) {
 							Block pre_overlap = *last;
 							Block post_overlap = *last;
-							pre_overlap.remove(overlap.first, last->end());
-							post_overlap.remove(last->start(), overlap.first - 1);
+							pre_overlap.remove(overlap.start, last->end());
+							post_overlap.remove(last->start(), overlap.start - 1);
 							blocks.pop_back();
 							if (!pre_overlap.empty()) {
 								replaces.push_front(pre_overlap);
@@ -158,15 +158,15 @@ void Expression::remove(Block block) {
 			// So let's move this one to just before the REPLACEs
 			while (!blocks.empty() && blocks.back().get_operator() == REPLACE) {
 				std::unique_ptr<Block> last = std::make_unique<Block>(blocks.back());
-				std::pair<uint64_t, uint64_t> overlap = last->overlap(block);
-				if (overlap != std::pair<uint64_t, uint64_t>(0, 0)) {
+				BlockOverlap overlap = last->overlap(block);
+				if (!overlap.empty) {
 					Block pre_overlap = *last;
 					Block overlapping_portion = *last;
 					Block post_overlap = *last;
-					pre_overlap.remove(overlap.first, last->end());
-					overlapping_portion.remove(last->start(), overlap.first - 1);
-					overlapping_portion.remove(overlap.second + 1, last->end());
-					post_overlap.remove(last->start(), overlap.second);
+					pre_overlap.remove(overlap.start, last->end());
+					overlapping_portion.remove(last->start(), overlap.start - 1);
+					overlapping_portion.remove(overlap.end + 1, last->end());
+					post_overlap.remove(last->start(), overlap.end);
 
 					blocks.pop_back();
 
