@@ -1,5 +1,4 @@
 #include "expression.h"
-#include <iostream>
 
 Expression::Expression() = default;
 
@@ -45,10 +44,8 @@ void Expression::re_evaluate() {
 
 void Expression::insert(Block block) {
 	block.set_operator(INSERT);
-	std::deque<Block> inserts;
 	std::deque<Block> removes;
 	std::deque<Block> replaces;
-	uint64_t original_start = block.start();
 	switch (optimization_level) {
 		default:
 			[[fallthrough]];
@@ -64,54 +61,53 @@ void Expression::insert(Block block) {
 			// We don't need to actually strictly *combine* them,
 			// We just need to put all the insert instructions next to each other
 			// So that we can execute all of them on a single pass-through
-			while (blocks.size() > 0) {
+
+			// The instruction sequence at this moment will look like this:
+			// {ALL OF THE INSERT INSTRUCTIONS}
+			// {ALL OF THE REMOVE INSTRUCTIONS}
+			// {ALL OF THE REPLACE INSTRUCTIONS}
+			// {This INSERT instruction}
+			// So let's move this one on up to the end of the INSERT instructions
+			for (Block* last = blocks.empty() ? nullptr : &blocks.back();
+				!blocks.empty() && last->get_operator() != INSERT;
+				last = blocks.empty() ? nullptr : &blocks.back()
+			) { 
 				std::pair<uint64_t, uint64_t> overlap = std::pair<uint64_t, uint64_t>(0, 0);
-				switch (blocks[0].get_operator()) {
-					case INSERT:
-						inserts.push_back(blocks[0]);
-						blocks.pop_front();
-						break;
+				switch (last->get_operator()) {
 					case REMOVE:
-						removes.push_back(blocks[0]);
-						blocks.pop_front();
-						if (removes.back().start() <= original_start) {
-							block.shift_right(removes.back().size());
-						} else if (removes.back().start() > original_start) {
-							removes.back().shift_right(block.size());
+						if (last->start() <= block.start()) {
+							block.shift_right(last->size());
+						} else {
+							last->shift_right(block.size());
 						}
+						removes.push_front(*last);
+						blocks.pop_back();
 						break;
 					case REPLACE:
-						replaces.push_back(blocks[0]);
-						blocks.pop_front();
-						overlap = replaces.back().overlap(original_start, original_start + block.size() - 1);
-						if (replaces.back().start() >= original_start) {
-							replaces.back().shift_right(block.size());
-						} else if (overlap != std::pair<uint64_t, uint64_t>(0, 0)) {
-							// Split the REPLACE block into two parts:
-							// 1. The part before the overlap
-							// 2. The part after the overlap
-							// And right-shift the part after the overlap by the size of the overlap
-							Block before_overlap = replaces.back();
-							Block after_overlap = replaces.back();
-							before_overlap.remove(overlap.first, replaces.back().end());
-							after_overlap.remove(replaces.back().start(), overlap.first - 1);
-
-							replaces.pop_back();
-
-							if (!before_overlap.empty()) {
-								replaces.push_back(before_overlap);
+						overlap = last->overlap(block);
+						if (overlap != std::pair<uint64_t, uint64_t>(0, 0)) {
+							Block pre_overlap = *last;
+							Block post_overlap = *last;
+							pre_overlap.remove(overlap.first, last->end());
+							post_overlap.remove(last->start(), overlap.first - 1);
+							blocks.pop_back();
+							if (!pre_overlap.empty()) {
+								replaces.push_front(pre_overlap);
 							}
-
-							if (!after_overlap.empty()) {
-								after_overlap.shift_right(overlap.second - overlap.first + 1);
-								replaces.push_back(after_overlap);
+							if (!post_overlap.empty()) {
+								post_overlap.shift_right(block.size());
+								replaces.push_front(post_overlap);
 							}
+						} else if (last->start() >= block.start()) {
+							last->shift_right(block.size());
+							replaces.push_front(*last);
+							blocks.pop_back();
+						} else {
+							replaces.push_front(*last);
+							blocks.pop_back();
 						}
 						break;
 				}
-			}
-			for (const auto& b : inserts) {
-				blocks.push_back(b);
 			}
 			[[fallthrough]];
 		case 0:
@@ -120,12 +116,12 @@ void Expression::insert(Block block) {
 			}
 			break;
 	}
-	// Copy 'removes' and 'replaces' to the main blocks vector
-	for (const auto& b : removes) {
-		blocks.push_back(b);
+	// Re-add the removes and replaces
+	for (auto& remove : removes) {
+		blocks.push_back(remove);
 	}
-	for (const auto& b : replaces) {
-		blocks.push_back(b);
+	for (auto& replace : replaces) {
+		blocks.push_back(replace);
 	}
 }
 
@@ -148,53 +144,46 @@ void Expression::remove(Block block) {
 			// Apply theorem #1 (combining remove instructions)
 			// Most of the leg-work is already handled by INSERTs (above)
 			// Here, we only have to make sure we separate REMOVEs from REPLACEs
-			while (blocks.size() > 0) {
-				std::pair<uint64_t, uint64_t> overlap;
-				switch (blocks[0].get_operator()) {
-					case INSERT:
-						inserts.push_back(blocks[0]);
-						blocks.pop_front();
-						break;
-					case REMOVE:
-						removes.push_back(blocks[0]);
-						blocks.pop_front();
-						break;
-					case REPLACE:
-						replaces.push_back(blocks[0]);
-						blocks.pop_front();
-						overlap = replaces.back().overlap(block);
-						if (replaces.back().start() > block.end()) {
-							replaces.back().shift_left(block.size());
-						} else if (overlap != std::pair<uint64_t, uint64_t>(0, 0)) {
-							// Remove the overlapping portion of the REPLACE instruction
-							// And left-shift any remaining portion *after* the overlap
-							// E.g, if the REPLACE block was:
-							// 		7	8	9	10	11
-							// 		a	b	c	d	e
-							// And the REMOVE block removed characters 8 to 10,
-							// The REPLACE block would become:
-							// 		7	8
-							// 		a	e
-							// Note that the 'e' moved in this example from position 11 to position 8.
 
-							replaces.back().remove_and_shift(overlap.first, overlap.second);
-							// Simply calling 'remove()' instead of 'remove_and_shift()' would not work here,
-							// Because the 'e' would remain at position 11
-							// 'remove_and_shift()' collapses the block after removing the overlapping portion
+			// At this point, the instruction sequence will look like:
+			// The instruction sequence at this moment will look like this:
+			// {ALL OF THE INSERT INSTRUCTIONS}
+			// {ALL OF THE REMOVE INSTRUCTIONS}
+			// {ALL OF THE REPLACE INSTRUCTIONS}
+			// {This remove instruction}
+			// So let's move this one to just before the REPLACEs
+			for (Block* last = blocks.empty() ? nullptr : &blocks.back();
+				!blocks.empty() && last->get_operator() == REPLACE;
+				last = blocks.empty() ? nullptr : &blocks.back()
+			) { 
+				std::pair<uint64_t, uint64_t> overlap = last->overlap(block);
+				if (overlap != std::pair<uint64_t, uint64_t>(0, 0)) {
+					Block pre_overlap = *last;
+					Block overlapping_portion = *last;
+					Block post_overlap = *last;
+					pre_overlap.remove(overlap.first, last->end());
+					overlapping_portion.remove(last->start(), overlap.first - 1);
+					overlapping_portion.remove(overlap.second + 1, last->end());
+					post_overlap.remove(last->start(), overlap.second);
 
-							if (replaces.back().empty()) {
-								// If the REPLACE instruction is now empty, remove it
-								replaces.pop_back();
-							}
-						}
-						break;
+					blocks.pop_back();
+
+					if (!pre_overlap.empty()) {
+						replaces.push_front(pre_overlap);
+					}
+					if (!post_overlap.empty()) {
+						post_overlap.shift_left(block.size());
+						replaces.push_front(post_overlap);
+					}
+					// Discard the overlapping portion
+				} else if (last->start() >= block.start()) {
+					last->shift_left(block.size());
+					replaces.push_front(*last);
+					blocks.pop_back();
+				} else {
+					replaces.push_front(*last);
+					blocks.pop_back();
 				}
-			}
-			for (const auto& b : inserts) {
-				blocks.push_back(b);
-			}
-			for (const auto& b : removes) {
-				blocks.push_back(b);
 			}
 			[[fallthrough]];
 		case 0:
@@ -203,8 +192,8 @@ void Expression::remove(Block block) {
 			}
 			break;
 	}
-	// Copy 'replaces' to the main blocks vector
-	for (const auto& b : replaces) {
+	// Re-add the REPLACEs
+	for (auto& b : replaces) {
 		blocks.push_back(b);
 	}
 }
