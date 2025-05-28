@@ -1,5 +1,7 @@
 #include "expression.h"
 
+#include <memory>
+
 Expression::Expression() = default;
 
 Expression::Expression(uint8_t optimization_level) {
@@ -68,12 +70,14 @@ void Expression::insert(Block block) {
 			// {ALL OF THE REPLACE INSTRUCTIONS}
 			// {This INSERT instruction}
 			// So let's move this one on up to the end of the INSERT instructions
-			for (Block* last = blocks.empty() ? nullptr : &blocks.back();
-				!blocks.empty() && last->get_operator() != INSERT;
-				last = blocks.empty() ? nullptr : &blocks.back()
-			) { 
+			while (!blocks.empty() && blocks.back().get_operator() != INSERT) {
+				std::unique_ptr<Block> last = std::make_unique<Block>(blocks.back());
 				std::pair<uint64_t, uint64_t> overlap = std::pair<uint64_t, uint64_t>(0, 0);
 				switch (last->get_operator()) {
+					case INSERT:
+						// This case will never execute
+						// It's only here to make the compiler happy
+						throw std::runtime_error("Unexpected INSERT block in the middle of the expression.");
 					case REMOVE:
 						if (last->start() <= block.start()) {
 							block.shift_right(last->size());
@@ -152,10 +156,8 @@ void Expression::remove(Block block) {
 			// {ALL OF THE REPLACE INSTRUCTIONS}
 			// {This remove instruction}
 			// So let's move this one to just before the REPLACEs
-			for (Block* last = blocks.empty() ? nullptr : &blocks.back();
-				!blocks.empty() && last->get_operator() == REPLACE;
-				last = blocks.empty() ? nullptr : &blocks.back()
-			) { 
+			while (!blocks.empty() && blocks.back().get_operator() == REPLACE) {
+				std::unique_ptr<Block> last = std::make_unique<Block>(blocks.back());
 				std::pair<uint64_t, uint64_t> overlap = last->overlap(block);
 				if (overlap != std::pair<uint64_t, uint64_t>(0, 0)) {
 					Block pre_overlap = *last;
