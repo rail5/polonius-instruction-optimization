@@ -252,11 +252,8 @@ void Expression::remove(Block block) {
 				BlockOverlap overlap = last->overlap(block);
 				if (!overlap.empty) {
 					Block pre_overlap = *last;
-					Block overlapping_portion = *last;
 					Block post_overlap = *last;
 					pre_overlap.remove(overlap.start, last->end());
-					overlapping_portion.remove(last->start(), overlap.start - 1);
-					overlapping_portion.remove(overlap.end + 1, last->end());
 					post_overlap.remove(last->start(), overlap.end);
 
 					blocks.pop_back();
@@ -268,7 +265,6 @@ void Expression::remove(Block block) {
 						post_overlap.shift_left(block.size());
 						replaces.push_front(post_overlap);
 					}
-					// Discard the overlapping portion
 				} else if (last->start() >= block.start()) {
 					last->shift_left(block.size());
 					replaces.push_front(*last);
