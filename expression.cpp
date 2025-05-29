@@ -1,7 +1,6 @@
 #include "expression.h"
 
 #include <memory>
-#include <iostream>
 
 Expression::Expression() = default;
 
@@ -49,6 +48,7 @@ void Expression::insert(Block block) {
 	block.set_operator(INSERT);
 	std::deque<Block> removes;
 	std::deque<Block> replaces;
+	uint64_t left_shift = 0;
 	switch (optimization_level) {
 		default:
 			[[fallthrough]];
@@ -57,6 +57,89 @@ void Expression::insert(Block block) {
 		case 2:
 			// Level 2 optimizations:
 			// Apply theorem #3 (eliminating redundant insert/remove pairs)
+			
+			// Iterate backwards through the blocks
+			while (!blocks.empty() && blocks.back().get_operator() != INSERT) {
+				Block* last = &blocks.back();
+				switch (last->get_operator()) {
+					case INSERT:
+						throw std::runtime_error("Unexpected INSERT block in the middle of the expression.");
+					case REPLACE:
+						replaces.push_front(*last);
+						blocks.pop_back();
+						break;
+					case REMOVE:
+						// Yes, they have to be EXACTLY EQUAL in order for there to be any redundancy.
+						if (last->start() == block.start() + left_shift) {
+							// There is a redundancy between the remove and this insert
+							// Ie, we're removing some characters and then inserting to the same position
+							// This can be simplified to a single replace
+							BlockOverlap overlap = last->overlap(block.start() + left_shift, block.end() + left_shift);
+
+							// Simplify these two instructions to a single replace
+							Block replace_block = block;
+							replace_block.remove(overlap.end - left_shift + 1, block.end());
+							replace_block.set_operator(REPLACE);
+
+							// Store the block's original start position
+							uint64_t original_start = block.start();
+
+							// Remove the overlap from both instructions
+							last->remove(overlap.start, overlap.end);
+							block.remove(overlap.start - left_shift, overlap.end - left_shift);
+
+							// After removing the overlap, either:
+							// 1. There is *only* redundancy (nothing left over after the end of the overlap)
+							// 2. Some of the INSERT is left over after the overlap
+							// 3. Some of the REMOVE is left over
+							if (last->empty()) {
+								blocks.pop_back();
+							}
+
+							// Update all of the blocks in-between the redundant remove/insert pair
+							for (auto& b : removes) {
+								if (b.start() >= original_start + left_shift) {
+									b.shift_right(overlap.end - overlap.start + 1);
+								} else {
+									left_shift -= b.size();
+								}
+								blocks.push_back(b);
+							}
+							removes.clear();
+							for (auto& b : replaces) {
+								if (b.start() >= original_start + left_shift) {
+									b.shift_right(overlap.end - overlap.start + 1);
+								}
+								blocks.push_back(b);
+							}
+							replaces.clear();
+							
+							// Add our replacement REPLACE block
+							blocks.push_back(replace_block);
+							
+							// If the INSERT block is now empty, just return
+							if (block.empty()) {
+								return;
+							}
+							// Otherwise, fall through to the level 1 optimizations
+							break;
+						} else if (last->start() < block.start() + left_shift) {
+							left_shift += last->size();
+						}
+						removes.push_front(*last);
+						blocks.pop_back();
+						break;
+				}
+			}
+			// Add back all the removes and replaces if we've made it this far
+			for (auto& b : removes) {
+				blocks.push_back(b);
+			}
+			removes.clear();
+			for (auto& b : replaces) {
+				blocks.push_back(b);
+			}
+			replaces.clear();
 			[[fallthrough]];
 		case 1:
 			// Level 1 optimizations:
@@ -72,7 +155,7 @@ void Expression::insert(Block block) {
 			// {This INSERT instruction}
 			// So let's move this one on up to the end of the INSERT instructions
 			while (!blocks.empty() && blocks.back().get_operator() != INSERT) {
-				std::unique_ptr<Block> last = std::make_unique<Block>(blocks.back());
+				Block* last = &blocks.back();
 				BlockOverlap overlap;
 				switch (last->get_operator()) {
 					case INSERT:
@@ -165,7 +248,7 @@ void Expression::remove(Block block) {
 			// {This remove instruction}
 			// So let's move this one to just before the REPLACEs
 			while (!blocks.empty() && blocks.back().get_operator() == REPLACE) {
-				std::unique_ptr<Block> last = std::make_unique<Block>(blocks.back());
+				Block* last = &blocks.back();
 				BlockOverlap overlap = last->overlap(block);
 				if (!overlap.empty) {
 					Block pre_overlap = *last;
