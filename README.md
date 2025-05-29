@@ -26,3 +26,10 @@ The levels are as follows:
 ### Temporary Test Suite
 
 This repository also contains a test suite written in [Bash++](https://bpp.sh) which will be used to verify that we don't screw anything up while implementing the optimizations. It will be expanded as we go along.
+
+
+### Milestones
+
+ - **2025-05-29**: The original sample from the Instruction Optimization wiki page has been successfully optimized to the expected result.
+   - The sequence `REMOVE 0 2`, `INSERT 0 abc` now automatically optimizes to `REPLACE 0 abc`
+   - Theorems 0, 1, and 3 have been fully implemented.
