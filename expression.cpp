@@ -12,15 +12,13 @@ Expression::Expression(uint8_t optimization_level) {
 void Expression::set_optimization_level(uint8_t level) {
 	optimization_level = level;
 
-	if (!blocks.empty()) {
-		// If we change the optimization level, we need to re-evaluate the expression
-		// If we don't do this, the expression will not be optimized correctly when we add more terms
-		// (And will become, in fact, an incorrect and potentially invalid expression)
-		// E.g, if we've *been* optimizing according to -O1,
-		// And we now set the optimization level to -O2,
-		// We need to re-evaluate the expression to apply the new optimizations from the beginning
-		re_evaluate();
-	}
+	// If we change the optimization level, we need to re-evaluate the expression
+	// If we don't do this, the expression will not be optimized correctly when we add more terms
+	// (And will become, in fact, an incorrect and potentially invalid expression)
+	// E.g, if we've *been* optimizing according to -O1,
+	// And we now set the optimization level to -O2,
+	// We need to re-evaluate the expression to apply the new optimizations from the beginning
+	re_evaluate();
 }
 
 void Expression::re_evaluate() {
