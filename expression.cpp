@@ -1,6 +1,7 @@
 #include "expression.h"
 
 #include <memory>
+#include <iostream>
 
 Expression::Expression() = default;
 
@@ -93,7 +94,16 @@ void Expression::insert(Block block) {
 							Block pre_overlap = *last;
 							Block post_overlap = *last;
 							pre_overlap.remove(overlap.start, last->end());
-							post_overlap.remove(last->start(), overlap.start - 1);
+
+							// In the event that the overlap starts at the beginning of the REPLACE block,
+							// Calling remove(start, start - 1) can be disasterous
+							// E.g, if the block starts at '0', this will underflow and clear the entire block
+							// And even if the block doesn't start at 0, we'll end up removing some of what we want to keep
+							// Of course, what we want to keep in post_overlap is the entire portion of the block from
+							// where the overlap starts to the end
+							if (overlap.start != last->start()) {
+								post_overlap.remove(last->start(), overlap.start - 1);
+							}
 							blocks.pop_back();
 							if (!pre_overlap.empty()) {
 								replaces.push_front(pre_overlap);
@@ -131,8 +141,6 @@ void Expression::insert(Block block) {
 
 void Expression::remove(Block block) {
 	block.set_operator(REMOVE);
-	std::deque<Block> inserts;
-	std::deque<Block> removes;
 	std::deque<Block> replaces;
 	switch (optimization_level) {
 		default:
