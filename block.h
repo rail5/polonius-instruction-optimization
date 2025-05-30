@@ -62,6 +62,9 @@ class Block {
 		InstructionType op;
 
 	public:
+		Block() = default;
+		Block(const Block& other); // Copy constructor
+		Block(Block&& other) noexcept; // Move constructor
 		std::vector<std::pair<uint64_t, char>> get_data() const;
 
 		void set_operator(InstructionType op);

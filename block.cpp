@@ -1,5 +1,16 @@
 #include "block.h"
 
+Block::Block(const Block& other) {
+	this->data = other.data;
+	this->op = other.op;
+}
+
+Block::Block(Block&& other) noexcept {
+	this->data = std::move(other.data);
+	this->op = std::move(other.op);
+	other.data.clear(); // Clear the moved-from block's data
+}
+
 std::vector<std::pair<uint64_t, char>> Block::get_data() const {
 	return data;
 }

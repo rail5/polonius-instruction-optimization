@@ -1,7 +1,5 @@
 #include "expression.h"
 
-#include <memory>
-
 Expression::Expression() = default;
 
 Expression::Expression(uint8_t optimization_level) {
@@ -24,25 +22,25 @@ void Expression::set_optimization_level(uint8_t level) {
 void Expression::re_evaluate() {
 	// Re-evaluate the entire expression
 
-	std::deque<Block> blocks_copy = blocks;
+	std::deque<Block> blocks_copy = std::move(blocks);
 	blocks.clear();
 
 	for (auto& block : blocks_copy) {
 		switch (block.get_operator()) {
 			case INSERT:
-				insert(block);
+				insert(std::move(block));
 				break;
 			case REMOVE:
-				remove(block);
+				remove(std::move(block));
 				break;
 			case REPLACE:
-				replace(block);
+				replace(std::move(block));
 				break;
 		}
 	}
 }
 
-void Expression::insert(Block block) {
+void Expression::insert(Block&& block) {
 	block.set_operator(INSERT);
 	std::deque<Block> removes;
 	std::deque<Block> replaces;
@@ -63,7 +61,7 @@ void Expression::insert(Block block) {
 					case INSERT:
 						throw std::runtime_error("Unexpected INSERT block in the middle of the expression.");
 					case REPLACE:
-						replaces.push_front(*last);
+						replaces.emplace_front(std::move(*last));
 						blocks.pop_back();
 						break;
 					case REMOVE:
@@ -71,7 +69,7 @@ void Expression::insert(Block block) {
 							left_shift += last->size(); // Track position shifts
 						} else if (last->start() == block.start() + left_shift) {
 							// Yes, they have to be EXACTLY EQUAL in order for there to be any redundancy.
-							
+
 							// There is a redundancy between the remove and this insert
 							// Ie, we're removing some characters and then inserting to the same position
 							// This can be simplified to a single replace
@@ -105,19 +103,19 @@ void Expression::insert(Block block) {
 									left_shift -= b.size(); // This will undo each position shift one-by-one in reverse order
 											// Ie, left_shift == 0 at the end of this loop
 								}
-								blocks.push_back(b);
+								blocks.emplace_back(std::move(b));
 							}
 							removes.clear();
 							for (auto& b : replaces) {
 								if (b.start() >= original_start + left_shift) {
 									b.shift_right(overlap.end - overlap.start + 1);
 								}
-								blocks.push_back(b);
+								blocks.emplace_back(std::move(b));
 							}
 							replaces.clear();
 							
 							// Add our replacement REPLACE block
-							blocks.push_back(replace_block);
+							blocks.emplace_back(std::move(replace_block));
 							
 							// If the INSERT block is now empty, just return
 							if (block.empty()) {
@@ -126,18 +124,18 @@ void Expression::insert(Block block) {
 							// Otherwise, fall through to the level 1 optimizations
 							break;
 						}
-						removes.push_front(*last);
+						removes.emplace_front(std::move(*last));
 						blocks.pop_back();
 						break;
 				}
 			}
 			// Add back all the removes and replaces if we've made it this far
 			for (auto& b : removes) {
-				blocks.push_back(b);
+				blocks.emplace_back(std::move(b));
 			}
 			removes.clear();
 			for (auto& b : replaces) {
-				blocks.push_back(b);
+				blocks.emplace_back(std::move(b));
 			}
 			replaces.clear();
 			[[fallthrough]];
@@ -168,7 +166,7 @@ void Expression::insert(Block block) {
 						} else {
 							last->shift_right(block.size());
 						}
-						removes.push_front(*last);
+						removes.emplace_front(std::move(*last));
 						blocks.pop_back();
 						break;
 					case REPLACE:
@@ -189,18 +187,18 @@ void Expression::insert(Block block) {
 							}
 							blocks.pop_back();
 							if (!pre_overlap.empty()) {
-								replaces.push_front(pre_overlap);
+								replaces.emplace_front(std::move(pre_overlap));
 							}
 							if (!post_overlap.empty()) {
 								post_overlap.shift_right(block.size());
-								replaces.push_front(post_overlap);
+								replaces.emplace_front(std::move(post_overlap));
 							}
 						} else if (last->start() >= block.start()) {
 							last->shift_right(block.size());
-							replaces.push_front(*last);
+							replaces.emplace_front(std::move(*last));
 							blocks.pop_back();
 						} else {
-							replaces.push_front(*last);
+							replaces.emplace_front(std::move(*last));
 							blocks.pop_back();
 						}
 						break;
@@ -209,20 +207,20 @@ void Expression::insert(Block block) {
 			[[fallthrough]];
 		case 0:
 			if (!block.empty()) {
-				blocks.push_back(block);
+				blocks.emplace_back(std::move(block));
 			}
 			break;
 	}
 	// Re-add the removes and replaces
 	for (auto& remove : removes) {
-		blocks.push_back(remove);
+		blocks.emplace_back(std::move(remove));
 	}
 	for (auto& replace : replaces) {
-		blocks.push_back(replace);
+		blocks.emplace_back(std::move(replace));
 	}
 }
 
-void Expression::remove(Block block) {
+void Expression::remove(Block&& block) {
 	block.set_operator(REMOVE);
 	std::deque<Block> replaces;
 	switch (optimization_level) {
@@ -259,35 +257,35 @@ void Expression::remove(Block block) {
 					blocks.pop_back();
 
 					if (!pre_overlap.empty()) {
-						replaces.push_front(pre_overlap);
+						replaces.emplace_front(std::move(pre_overlap));
 					}
 					if (!post_overlap.empty()) {
 						post_overlap.shift_left(block.size());
-						replaces.push_front(post_overlap);
+						replaces.emplace_front(std::move(post_overlap));
 					}
 				} else if (last->start() >= block.start()) {
 					last->shift_left(block.size());
-					replaces.push_front(*last);
+					replaces.emplace_front(std::move(*last));
 					blocks.pop_back();
 				} else {
-					replaces.push_front(*last);
+					replaces.emplace_front(std::move(*last));
 					blocks.pop_back();
 				}
 			}
 			[[fallthrough]];
 		case 0:
 			if (!block.empty()) {
-				blocks.push_back(block);
+				blocks.emplace_back(std::move(block));
 			}
 			break;
 	}
 	// Re-add the REPLACEs
 	for (auto& b : replaces) {
-		blocks.push_back(b);
+		blocks.emplace_back(std::move(b));
 	}
 }
 
-void Expression::replace(Block block) {
+void Expression::replace(Block&& block) {
 	block.set_operator(REPLACE);
 	switch (optimization_level) {
 		default:
@@ -300,23 +298,23 @@ void Expression::replace(Block block) {
 			[[fallthrough]];
 		case 0:
 			if (!block.empty()) {
-				blocks.push_back(block);
+				blocks.emplace_back(std::move(block));
 			}
 			break;
 	}
 }
 
-Expression Expression::operator+(Block block) {
-	insert(block);
+Expression Expression::operator+(Block&& block) {
+	insert(std::move(block));
 	return *this;
 }
 
-Expression Expression::operator-(Block block) {
-	remove(block);
+Expression Expression::operator-(Block&& block) {
+	remove(std::move(block));
 	return *this;
 }
 
-Expression Expression::operator*(Block block) {
-	replace(block);
+Expression Expression::operator*(Block&& block) {
+	replace(std::move(block));
 	return *this;
 }

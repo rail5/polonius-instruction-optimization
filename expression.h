@@ -41,14 +41,14 @@ class Expression {
 		Expression();
 		explicit Expression(uint8_t optimization_level);
 
-		void insert(Block block);
-		void remove(Block block);
-		void replace(Block block);
+		void insert(Block&& block);
+		void remove(Block&& block);
+		void replace(Block&& block);
 
 		// Operator overloads
-		Expression operator+(Block block);
-		Expression operator-(Block block);
-		Expression operator*(Block block);
+		Expression operator+(Block&& block);
+		Expression operator-(Block&& block);
+		Expression operator*(Block&& block);
 
 		void set_optimization_level(uint8_t level);
 
