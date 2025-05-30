@@ -56,7 +56,7 @@ struct BlockOverlap {
  * 		Subtraction = Remove instructions
  * 		Multiplication = Replace instructions
  * 
- * TODO(@rail5): Masive performance improvements if we can safely assume that all Blocks are contiguous
+ * TODO(@rail5): Massive performance improvements if we can safely assume that all Blocks are contiguous
  */
 class Block {
 	private:
