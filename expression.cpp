@@ -67,8 +67,11 @@ void Expression::insert(Block block) {
 						blocks.pop_back();
 						break;
 					case REMOVE:
-						// Yes, they have to be EXACTLY EQUAL in order for there to be any redundancy.
-						if (last->start() == block.start() + left_shift) {
+						if (last->start() < block.start() + left_shift) {
+							left_shift += last->size(); // Track position shifts
+						} else if (last->start() == block.start() + left_shift) {
+							// Yes, they have to be EXACTLY EQUAL in order for there to be any redundancy.
+							
 							// There is a redundancy between the remove and this insert
 							// Ie, we're removing some characters and then inserting to the same position
 							// This can be simplified to a single replace
@@ -99,7 +102,8 @@ void Expression::insert(Block block) {
 								if (b.start() >= original_start + left_shift) {
 									b.shift_right(overlap.end - overlap.start + 1);
 								} else {
-									left_shift -= b.size();
+									left_shift -= b.size(); // This will undo each position shift one-by-one in reverse order
+											// Ie, left_shift == 0 at the end of this loop
 								}
 								blocks.push_back(b);
 							}
@@ -121,8 +125,6 @@ void Expression::insert(Block block) {
 							}
 							// Otherwise, fall through to the level 1 optimizations
 							break;
-						} else if (last->start() < block.start() + left_shift) {
-							left_shift += last->size();
 						}
 						removes.push_front(*last);
 						blocks.pop_back();
