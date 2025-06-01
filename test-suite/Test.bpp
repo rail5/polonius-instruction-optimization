@@ -101,6 +101,14 @@
 		rm -f "${temp_file}"
 		echo "${input_file_contents}" > "${temp_file}"
 
+		# Compare the original output with the expected output
+		if [[ "${original_output}" != "${expected_output}" ]]; then
+			echo "Error: Original output does not match expected output for test '@{this.instruction_file}'."
+			@this.status="fail"
+			@this.finishTest
+			return 1
+		fi
+
 		# Get the optimized output
 		polonius-editor "${temp_file}" -s "${optimized_instructions}"
 		optimized_output="@(cat "${temp_file}")"
