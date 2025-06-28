@@ -42,9 +42,11 @@ void Expression::re_evaluate() {
 
 void Expression::insert(Block&& block) {
 	block.set_operator(INSERT);
+	std::deque<Block> inserts;
 	std::deque<Block> removes;
 	std::deque<Block> replaces;
 	uint64_t left_shift = 0;
+	bool reached_insert_position = false;
 	switch (optimization_level) {
 		default:
 			[[fallthrough]];
@@ -151,15 +153,21 @@ void Expression::insert(Block&& block) {
 			// {ALL OF THE REMOVE INSTRUCTIONS}
 			// {ALL OF THE REPLACE INSTRUCTIONS}
 			// {This INSERT instruction}
-			// So let's move this one on up to the end of the INSERT instructions
-			while (!blocks.empty() && blocks.back().get_operator() != INSERT) {
+			// So let's move this one on up to the INSERT instructions
+			while (!blocks.empty() && !reached_insert_position) {
 				Block* last = &blocks.back();
 				BlockOverlap overlap;
 				switch (last->get_operator()) {
 					case INSERT:
-						// This case will never execute
-						// It's only here to make the compiler happy
-						throw std::runtime_error("Unexpected INSERT block in the middle of the expression.");
+						// Make sure the INSERT instructions are always sorted
+						if (last->start() > block.start()) {
+							last->shift_right(block.size());
+							inserts.emplace_front(std::move(*last));
+							blocks.pop_back();
+						} else {
+							reached_insert_position = true;
+						}
+						break;
 					case REMOVE:
 						if (last->start() <= block.start()) {
 							block.shift_right(last->size());
@@ -211,7 +219,10 @@ void Expression::insert(Block&& block) {
 			}
 			break;
 	}
-	// Re-add the removes and replaces
+	// Re-add the old inserts, removes, and replaces
+	for (auto& insert : inserts) {
+		blocks.emplace_back(std::move(insert));
+	}
 	for (auto& remove : removes) {
 		blocks.emplace_back(std::move(remove));
 	}
