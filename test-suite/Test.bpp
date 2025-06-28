@@ -95,7 +95,7 @@
 		echo "${input_file_contents}" > "${temp_file}"
 
 		# Get the original output
-		polonius-editor "${temp_file}" -s "${instructions}"
+		polonius-editor "${temp_file}" -a "${instructions}"
 		original_output="@(cat "${temp_file}")"
 
 		rm -f "${temp_file}"
@@ -110,7 +110,7 @@
 		fi
 
 		# Get the optimized output
-		polonius-editor "${temp_file}" -s "${optimized_instructions}"
+		polonius-editor "${temp_file}" -a "${optimized_instructions}"
 		optimized_output="@(cat "${temp_file}")"
 
 		rm -f "${temp_file}"
