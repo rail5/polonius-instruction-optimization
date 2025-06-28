@@ -15,6 +15,16 @@ Block::Block(Block&& other) noexcept {
 	other.contents.clear();
 }
 
+Block& Block::operator=(Block&& other) noexcept {
+	if (this != &other) {
+		this->start_position = other.start_position;
+		this->contents = std::move(other.contents);
+		this->op = other.op;
+		other.contents.clear();
+	}
+	return *this;
+}
+
 std::string Block::get_contents() const {
 	return contents;
 }
@@ -36,6 +46,9 @@ uint64_t Block::start() const {
 }
 
 uint64_t Block::end() const {
+	if (contents.empty()) {
+		return 0;
+	}
 	return start_position + contents.size() - 1;
 }
 
@@ -192,6 +205,10 @@ Block combine_inserts(const Block& lhs, const Block& rhs) {
 
 	Block combined;
 
+	if (lhs.empty() || rhs.empty()) {
+		return combined; // If either block is empty, return empty block
+	}
+
 	// Verify they overlap
 	BlockOverlap overlap = lhs.overlap(rhs);
 	if (overlap.empty || lhs.start() > rhs.start()) {
@@ -214,5 +231,31 @@ Block combine_inserts(const Block& lhs, const Block& rhs) {
 	third = third.substr(overlap.start - third_offset);
 
 	combined.add(lhs.start(), first + second + third);
+	return combined;
+}
+
+Block combine_removes(const Block& lhs, const Block& rhs) {
+	// Verify they're both removes
+	if (lhs.get_operator() != REMOVE || rhs.get_operator() != REMOVE) {
+		throw std::invalid_argument("Both blocks must be REMOVE operations to combine.");
+	}
+
+	Block combined;
+
+	if (lhs.empty() || rhs.empty()) {
+		return combined; // If either block is empty, return empty block
+	}
+
+
+	// Verify they overlap in precisely the following way:
+	// The START position of the lhs is BETWEEN the START and END positions of the rhs
+	if (lhs.start() < rhs.start() || lhs.start() > rhs.end()) {
+		return combined; // No overlap of this kind, return empty block
+	}
+
+	combined.set_operator(REMOVE);
+	uint64_t combined_end = rhs.end() + lhs.size();
+	combined.add(rhs.start(), combined_end);
+
 	return combined;
 }

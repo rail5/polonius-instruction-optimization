@@ -73,6 +73,8 @@ class Block {
 		Block(const Block& other); // Copy constructor
 		Block(Block&& other) noexcept; // Move constructor
 
+		Block& operator=(Block&& other) noexcept; // Move assignment operator
+
 		std::string get_contents() const;
 
 		void set_operator(InstructionType op);
@@ -101,5 +103,6 @@ class Block {
 };
 
 Block combine_inserts(const Block& lhs, const Block& rhs);
+Block combine_removes(const Block& lhs, const Block& rhs);
 
 #endif // BLOCK_H_
