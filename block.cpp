@@ -1,5 +1,7 @@
 #include "block.h"
 
+#include <stdexcept>
+
 Block::Block(const Block& other) {
 	this->start_position = other.start_position;
 	this->contents = other.contents;
@@ -81,6 +83,14 @@ void Block::remove(uint64_t start_position, uint64_t end_position) {
 	if (removeStart <= this->start_position) {
 		this->start_position = removeEnd + 1;
 	}
+}
+
+/**
+ * @brief Clear the entire block (set it to an empty block)
+ */
+void Block::clear() {
+	start_position = 0;
+	contents.clear();
 }
 
 bool Block::shift_left(uint64_t shift_amount) {
@@ -172,4 +182,37 @@ BlockOverlap Block::overlap(uint64_t start_position, uint64_t end_position) cons
 		result.empty = false;
 	}
 	return result;
+}
+
+Block combine_inserts(const Block& lhs, const Block& rhs) {
+	// Verify they're both inserts
+	if (lhs.get_operator() != INSERT || rhs.get_operator() != INSERT) {
+		throw std::invalid_argument("Both blocks must be INSERT operations to combine.");
+	}
+
+	Block combined;
+
+	// Verify they overlap
+	BlockOverlap overlap = lhs.overlap(rhs);
+	if (overlap.empty || lhs.start() > rhs.start()) {
+		return combined; // No overlap, return empty block
+	}
+
+	combined.set_operator(INSERT);
+	
+	std::string first, second, third;
+	size_t first_offset, third_offset;
+
+	first = lhs.start() <= rhs.start() ? lhs.get_contents() : rhs.get_contents();
+	first_offset = lhs.start() <= rhs.start() ? lhs.start() : rhs.start();
+	first = first.substr(0, overlap.start - first_offset);
+
+	second = lhs.start() <= rhs.start() ? rhs.get_contents() : lhs.get_contents();
+
+	third = lhs.start() <= rhs.start() ? lhs.get_contents() : rhs.get_contents();
+	third_offset = lhs.start() <= rhs.start() ? lhs.start() : rhs.start();
+	third = third.substr(overlap.start - third_offset);
+
+	combined.add(lhs.start(), first + second + third);
+	return combined;
 }

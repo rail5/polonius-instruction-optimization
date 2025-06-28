@@ -89,6 +89,8 @@ class Block {
 
 		void remove(uint64_t start_position, uint64_t end_position);
 
+		void clear();
+
 		bool shift_left(uint64_t shift_amount);
 		bool shift_right(uint64_t shift_amount);
 
@@ -97,5 +99,7 @@ class Block {
 		BlockOverlap overlap(const Block& b) const;
 		BlockOverlap overlap(uint64_t start_position, uint64_t end_position) const;
 };
+
+Block combine_inserts(const Block& lhs, const Block& rhs);
 
 #endif // BLOCK_H_

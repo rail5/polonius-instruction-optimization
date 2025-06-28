@@ -42,11 +42,11 @@ void Expression::re_evaluate() {
 
 void Expression::insert(Block&& block) {
 	block.set_operator(INSERT);
-	std::deque<Block> inserts;
+	std::deque<Block> inserts_before_this_instruction;
+	std::deque<Block> inserts_after_this_instruction;
 	std::deque<Block> removes;
 	std::deque<Block> replaces;
 	uint64_t left_shift = 0;
-	bool reached_insert_position = false;
 	switch (optimization_level) {
 		default:
 			[[fallthrough]];
@@ -154,7 +154,7 @@ void Expression::insert(Block&& block) {
 			// {ALL OF THE REPLACE INSTRUCTIONS}
 			// {This INSERT instruction}
 			// So let's move this one on up to the INSERT instructions
-			while (!blocks.empty() && !reached_insert_position) {
+			while (!blocks.empty()) {
 				Block* last = &blocks.back();
 				BlockOverlap overlap;
 				switch (last->get_operator()) {
@@ -162,10 +162,22 @@ void Expression::insert(Block&& block) {
 						// Make sure the INSERT instructions are always sorted
 						if (last->start() > block.start()) {
 							last->shift_right(block.size());
-							inserts.emplace_front(std::move(*last));
+							inserts_after_this_instruction.emplace_front(std::move(*last));
 							blocks.pop_back();
 						} else {
-							reached_insert_position = true;
+							// If there's an overlap between these two blocks,
+							// They must be combined into a single block in order to
+							// be executed on a single pass of the file
+							// E.g, 'insert 0 abc' followed by 'insert 1 x'
+							// *must* become 'insert 0 axbc'
+							Block combined = combine_inserts(*last, block);
+							if (!combined.empty()) {
+								block.clear();
+								inserts_after_this_instruction.emplace_front(std::move(combined));
+							} else {
+								inserts_before_this_instruction.emplace_front(std::move(*last));
+							}
+							blocks.pop_back();
 						}
 						break;
 					case REMOVE:
@@ -212,6 +224,9 @@ void Expression::insert(Block&& block) {
 						break;
 				}
 			}
+			for (auto& insert : inserts_before_this_instruction) {
+				blocks.emplace_back(std::move(insert));
+			}
 			[[fallthrough]];
 		case 0:
 			if (!block.empty()) {
@@ -220,7 +235,7 @@ void Expression::insert(Block&& block) {
 			break;
 	}
 	// Re-add the old inserts, removes, and replaces
-	for (auto& insert : inserts) {
+	for (auto& insert : inserts_after_this_instruction) {
 		blocks.emplace_back(std::move(insert));
 	}
 	for (auto& remove : removes) {
