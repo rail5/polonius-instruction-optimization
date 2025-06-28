@@ -247,7 +247,10 @@ void Expression::insert(Block&& block) {
 
 void Expression::remove(Block&& block) {
 	block.set_operator(REMOVE);
+	std::deque<Block> removes_before_this_instruction;
+	std::deque<Block> removes_after_this_instruction;
 	std::deque<Block> replaces;
+	BlockOverlap overlap;
 	switch (optimization_level) {
 		default:
 			[[fallthrough]];
@@ -269,33 +272,60 @@ void Expression::remove(Block&& block) {
 			// {ALL OF THE REMOVE INSTRUCTIONS}
 			// {ALL OF THE REPLACE INSTRUCTIONS}
 			// {This remove instruction}
-			// So let's move this one to just before the REPLACEs
-			while (!blocks.empty() && blocks.back().get_operator() == REPLACE) {
+			// So let's move this one to the REMOVE section
+			while (!blocks.empty() && blocks.back().get_operator() != INSERT) {
 				Block* last = &blocks.back();
-				BlockOverlap overlap = last->overlap(block);
-				if (!overlap.empty) {
-					Block pre_overlap = *last;
-					Block post_overlap = *last;
-					pre_overlap.remove(overlap.start, last->end());
-					post_overlap.remove(last->start(), overlap.end);
+				switch (last->get_operator()) {
+					case INSERT:
+						break; // This will never happen
+					case REMOVE:
+						// Ensure our REMOVE instructions are always sorted
+						{
+							Block combined = combine_removes(*last, block);
+							if (!combined.empty()) {
+								block = std::move(combined);
+							} else {
+								// Can't be combined, can be re-ordered
+								if (last->start() < block.start()) {
+									removes_before_this_instruction.emplace_front(std::move(*last));
+								} else {
+									last->shift_left(block.size());
+									removes_after_this_instruction.emplace_front(std::move(*last));
+								}
+							}
+						}
+						blocks.pop_back();
+						break;
+					case REPLACE:
+						overlap = last->overlap(block);
+						if (!overlap.empty) {
+							Block pre_overlap = *last;
+							Block post_overlap = *last;
+							pre_overlap.remove(overlap.start, last->end());
+							post_overlap.remove(last->start(), overlap.end);
 
-					blocks.pop_back();
+							blocks.pop_back();
 
-					if (!pre_overlap.empty()) {
-						replaces.emplace_front(std::move(pre_overlap));
-					}
-					if (!post_overlap.empty()) {
-						post_overlap.shift_left(block.size());
-						replaces.emplace_front(std::move(post_overlap));
-					}
-				} else if (last->start() >= block.start()) {
-					last->shift_left(block.size());
-					replaces.emplace_front(std::move(*last));
-					blocks.pop_back();
-				} else {
-					replaces.emplace_front(std::move(*last));
-					blocks.pop_back();
+							if (!pre_overlap.empty()) {
+								replaces.emplace_front(std::move(pre_overlap));
+							}
+							if (!post_overlap.empty()) {
+								post_overlap.shift_left(block.size());
+								replaces.emplace_front(std::move(post_overlap));
+							}
+						} else if (last->start() >= block.start()) {
+							last->shift_left(block.size());
+							replaces.emplace_front(std::move(*last));
+							blocks.pop_back();
+						} else {
+							replaces.emplace_front(std::move(*last));
+							blocks.pop_back();
+						}
+						break;
 				}
+			}
+			for (auto& b : removes_before_this_instruction) {
+				blocks.emplace_back(std::move(b));
 			}
 			[[fallthrough]];
 		case 0:
@@ -304,7 +334,10 @@ void Expression::remove(Block&& block) {
 			}
 			break;
 	}
-	// Re-add the REPLACEs
+	// Re-add the REMOVEs and REPLACEs
+	for (auto& b : removes_after_this_instruction) {
+		blocks.emplace_back(std::move(b));
+	}
 	for (auto& b : replaces) {
 		blocks.emplace_back(std::move(b));
 	}
