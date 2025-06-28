@@ -171,8 +171,7 @@ void Expression::insert(Block&& block) {
 							// *must* become 'insert 0 axbc'
 							Block combined = combine_inserts(*last, block);
 							if (!combined.empty()) {
-								block.clear();
-								inserts_after_this_instruction.emplace_front(std::move(combined));
+								block = std::move(combined);
 							} else {
 								inserts_before_this_instruction.emplace_front(std::move(*last));
 							}
