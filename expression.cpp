@@ -163,7 +163,6 @@ void Expression::insert(Block&& block) {
 						if (last->start() > block.start()) {
 							last->shift_right(block.size());
 							inserts_after_this_instruction.emplace_front(std::move(*last));
-							blocks.pop_back();
 						} else {
 							// If there's an overlap between these two blocks,
 							// They must be combined into a single block in order to
@@ -177,8 +176,8 @@ void Expression::insert(Block&& block) {
 							} else {
 								inserts_before_this_instruction.emplace_front(std::move(*last));
 							}
-							blocks.pop_back();
 						}
+						blocks.pop_back();
 						break;
 					case REMOVE:
 						if (last->start() <= block.start()) {
