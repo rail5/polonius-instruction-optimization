@@ -1,5 +1,5 @@
-#ifndef BLOCK_H
-#define BLOCK_H
+#ifndef BLOCK_H_
+#define BLOCK_H_
 
 #include <string>
 #include <vector>
@@ -56,18 +56,24 @@ struct BlockOverlap {
  * 		Subtraction = Remove instructions
  * 		Multiplication = Replace instructions
  * 
- * TODO(@rail5): Massive performance improvements if we can safely assume that all Blocks are contiguous
+ * This Block class makes the simplifying assumption that the block is always contiguous
+ * I.e:
+ * 		0	1	8	9	<-- note the jump from '1' to '8'
+ * 		a	b	g	h
+ * Is not representable using this class.
  */
 class Block {
 	private:
-		std::vector<std::pair<uint64_t, char>> data;
+		uint64_t start_position = 0;
+		std::string contents = "";
 		InstructionType op;
 
 	public:
 		Block() = default;
 		Block(const Block& other); // Copy constructor
 		Block(Block&& other) noexcept; // Move constructor
-		std::vector<std::pair<uint64_t, char>> get_data() const;
+
+		std::string get_contents() const;
 
 		void set_operator(InstructionType op);
 		InstructionType get_operator() const;
@@ -82,7 +88,6 @@ class Block {
 		void add(uint64_t start_position, uint64_t end_position);
 
 		void remove(uint64_t start_position, uint64_t end_position);
-		void remove_and_shift(uint64_t start_position, uint64_t end_position);
 
 		bool shift_left(uint64_t shift_amount);
 		bool shift_right(uint64_t shift_amount);
@@ -93,4 +98,4 @@ class Block {
 		BlockOverlap overlap(uint64_t start_position, uint64_t end_position) const;
 };
 
-#endif // BLOCK_H
+#endif // BLOCK_H_

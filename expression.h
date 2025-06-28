@@ -72,13 +72,7 @@ class Expression {
 					result += std::to_string(block.start()) + " " + std::to_string(block.end());
 				} else {
 					result += std::to_string(block.start()) + " ";
-					for (const auto& [position, value] : block.get_data()) {
-						if (value == 0) {
-							result += "?";
-						} else {
-							result += value;
-						}
-					}
+					result += block.get_contents();
 				}
 				result += "\n";
 			}

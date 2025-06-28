@@ -1,18 +1,20 @@
 #include "block.h"
 
 Block::Block(const Block& other) {
-	this->data = other.data;
+	this->start_position = other.start_position;
+	this->contents = other.contents;
 	this->op = other.op;
 }
 
 Block::Block(Block&& other) noexcept {
-	this->data = std::move(other.data);
-	this->op = std::move(other.op);
-	other.data.clear(); // Clear the moved-from block's data
+	this->start_position = other.start_position;
+	this->contents = std::move(other.contents);
+	this->op = other.op;
+	other.contents.clear();
 }
 
-std::vector<std::pair<uint64_t, char>> Block::get_data() const {
-	return data;
+std::string Block::get_contents() const {
+	return contents;
 }
 
 void Block::set_operator(InstructionType op) {
@@ -24,106 +26,65 @@ InstructionType Block::get_operator() const {
 }
 
 uint64_t Block::size() const {
-	return data.size();
+	return contents.size();
 }
 
 uint64_t Block::start() const {
-	if (data.empty()) {
-		return 0;
-	}
-	return data.front().first;
+	return start_position;
 }
 
 uint64_t Block::end() const {
-	if (data.empty()) {
-		return 0;
-	}
-	return data.back().first;
+	return start_position + contents.size() - 1;
 }
 
 char Block::at(uint64_t index) const {
-	if (data.empty()) {
+	if (index < start_position || index >= start_position + contents.size()) {
 		return 0;
 	}
-
-	if (index > end() || index < start()) {
-		return 0;
-	}
-
-	for (const auto& pair : data) {
-		if (pair.first == index) {
-			return pair.second;
-		}
-	}
-
-	return 0;
+	return contents[index - start_position];
 }
 
 void Block::add(uint64_t start_position, const std::string& value) {
-	data.clear();
-	for (size_t i = 0; i < value.size(); ++i) {
-		data.push_back(std::make_pair(start_position + i, value[i]));
-	}
+	contents.clear();
+	this->start_position = start_position;
+	contents = value;
 }
 
 void Block::add(uint64_t start_position, uint64_t end_position) {
+	this->start_position = start_position;
+	contents.clear();
 	for (uint64_t i = start_position; i <= end_position; ++i) {
-		data.push_back(std::make_pair(i, 0)); // Using 0 to indicate a remove operation
-											// This is janky and should be changed in production
+		contents += '\0';
 	}
 }
 
 /**
- * @brief Removes elements in the specified range from the block.
+ * @brief Removes elements in the specified range
  * 
- * This may result in a non-contiguous block.
+ * This function removes the specified range and then shifts all subsequent elements to the left. * 
  * For example, if the block contains:
  * 		0	1	2	3	4
  * 		a	b	c	d	e
  * And we remove the range 1 to 3, the block will contain:
- * 		0	4
+ * 		0	1
  * 		a	e
- * Which is not contiguous.
  */
 void Block::remove(uint64_t start_position, uint64_t end_position) {
-	if (data.empty()) {
-		return;
-	}
+	uint64_t removeStart = std::max(start_position, this->start_position);
+	uint64_t removeEnd = std::min(end_position, this->end());
 
-	// Remove elements in the specified range
-	data.erase(std::remove_if(data.begin(), data.end(),
-		[start_position, end_position](const std::pair<uint64_t, char>& pair) {
-			return pair.first >= start_position && pair.first <= end_position;
-		}), data.end());
-}
-
-/**
- * @brief Removes elements in the specified range while guaranteeing that the block remains contiguous.
- * 
- * This function removes the specified range and then shifts all subsequent elements to the left.
- * This way, the block remains contiguous after the removal.
- * 
- * For example, if the block contains:
- * 		0	1	2	3	4
- * 		a	b	c	d	e
- * And we remove the range 1 to 3, the block will contain:
- * 		0	2
- * 		a	e
- * 
- * The 'e' was moved from 4 to 2, ensuring that the block remains contiguous.
- */
-void Block::remove_and_shift(uint64_t start_position, uint64_t end_position) {
-	remove(start_position, end_position);
-	// Left-shift everything after the removed range
-	for (auto& pair : data) {
-		if (pair.first > end_position) {
-			pair.first -= (end_position - start_position + 1);
-		}
+	std::string left_hand_side = contents.substr(0, removeStart - this->start_position);
+	std::string right_hand_side = contents.substr(removeEnd - this->start_position + 1);
+	contents = left_hand_side + right_hand_side;
+	
+	// Update the start position if we removed from the beginning
+	if (removeStart <= this->start_position) {
+		this->start_position = removeEnd + 1;
 	}
 }
 
 bool Block::shift_left(uint64_t shift_amount) {
-	if (data.empty()) {
+	if (contents.empty()) {
 		return false;
 	}
 
@@ -132,29 +93,24 @@ bool Block::shift_left(uint64_t shift_amount) {
 		return false;
 	}
 
-	// Shift the data
-	for (auto& pair : data) {
-		pair.first -= shift_amount;
-	}
+	start_position -= shift_amount;
 	
 	return true;
 }
 
 bool Block::shift_right(uint64_t shift_amount) {
-	if (data.empty()) {
+	if (contents.empty()) {
 		return false;
 	}
 
 	// Shift the data
-	for (auto& pair : data) {
-		pair.first += shift_amount;
-	}
+	start_position += shift_amount;
 	
 	return true;
 }
 
 bool Block::empty() const {
-	return data.empty();
+	return contents.empty();
 }
 
 /**
