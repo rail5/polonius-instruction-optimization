@@ -246,10 +246,14 @@ void Expression::insert(Block&& block) {
 
 void Expression::remove(Block&& block) {
 	block.set_operator(REMOVE);
+	std::deque<Block> inserts;
 	std::deque<Block> removes_before_this_instruction;
 	std::deque<Block> removes_after_this_instruction;
 	std::deque<Block> replaces;
 	BlockOverlap overlap;
+	uint64_t left_shift = 0;
+	uint64_t right_shift = 0;
+	Block recursive_process;
 	switch (optimization_level) {
 		default:
 			[[fallthrough]];
@@ -258,6 +262,131 @@ void Expression::remove(Block&& block) {
 		case 2:
 			// Level 2 optimizations:
 			// Apply theorem #4 (eliminating redundant insert/remove pairs)
+			while (!blocks.empty() && !block.empty()) {
+				Block* last = &blocks.back();
+				switch (last->get_operator()) {
+					case INSERT:
+						overlap = last->overlap(block.start() + left_shift - right_shift, block.end() + left_shift - right_shift);
+						if (!overlap.empty) {
+							// Found a redundant pair
+							Block insert_before_redundancy = *last;
+							Block insert_after_redundancy = *last;
+							Block remove_before_redundancy = block;
+							Block remove_after_redundancy = block;
+
+							insert_before_redundancy.remove(overlap.start, insert_before_redundancy.end());
+							insert_after_redundancy.remove(insert_after_redundancy.start(), overlap.end);
+
+							remove_before_redundancy.remove(overlap.start - left_shift + right_shift, remove_before_redundancy.end());
+							remove_after_redundancy.remove(remove_after_redundancy.start(), overlap.end - left_shift + right_shift);
+
+							uint64_t redundancy_size = overlap.end - overlap.start + 1;
+							uint64_t redundancy_start = overlap.start - left_shift + right_shift;
+
+							// ADJUST ANY NOW-MISPLACED INSERTS, REMOVES, OR REPLACES
+							uint64_t counter_right_shift = right_shift;
+							for (auto& b : inserts) {
+								uint64_t shift_update = 0;
+								if (b.start() < block.start() + left_shift - counter_right_shift) {
+									shift_update = b.size();
+								}
+
+								if (b.start() >= redundancy_start + left_shift - counter_right_shift) {
+									b.shift_left(redundancy_size);
+								}
+
+								counter_right_shift -= shift_update;
+							}
+
+							uint64_t counter_left_shift = left_shift;
+							for (auto& b : removes_before_this_instruction) {
+								uint64_t shift_update = 0;
+								if (b.start() < block.start() + counter_left_shift) {
+									shift_update = b.size();
+								}
+
+								if (b.start() >= redundancy_start + counter_left_shift) {
+									b.shift_left(redundancy_size);
+								}
+
+								counter_left_shift -= shift_update;
+							}
+
+							for (auto& b : replaces) {
+								BlockOverlap redundant_replace_portion = b.overlap(redundancy_start, redundancy_start + redundancy_size - 1);
+								uint64_t replace_original_start = b.start();
+								if (!redundant_replace_portion.empty) {
+									b.remove(redundant_replace_portion.start, redundant_replace_portion.end);
+								}
+
+								if (replace_original_start >= redundancy_start) {
+									b.shift_left(redundancy_size);
+								}
+							}
+
+							if (!insert_after_redundancy.empty()) {
+								insert_after_redundancy.shift_left(redundancy_size);
+								inserts.emplace_front(std::move(insert_after_redundancy));
+							}
+
+							if (!insert_before_redundancy.empty()) {
+								right_shift += insert_before_redundancy.size();
+								inserts.emplace_front(std::move(insert_before_redundancy));
+							}
+
+							block.clear();
+
+							if (!remove_after_redundancy.empty()) {
+								remove_after_redundancy.shift_left(redundancy_size);
+								block = std::move(remove_after_redundancy);
+							}
+
+							if (!remove_before_redundancy.empty()) {
+								recursive_process = std::move(remove_before_redundancy);
+							}
+
+							blocks.pop_back();
+
+						} else {
+							if (last->start() < block.start() + left_shift - right_shift) {
+								right_shift += last->size();
+							}
+							inserts.emplace_front(std::move(*last));
+							blocks.pop_back();
+						}
+						break;
+					case REMOVE:
+						if (last->start() < block.start() + left_shift) {
+							left_shift += last->size();
+						}
+						removes_before_this_instruction.emplace_front(std::move(*last));
+						blocks.pop_back();
+						break;
+					case REPLACE:
+						replaces.emplace_front(std::move(*last));
+						blocks.pop_back();
+						break;
+				}
+			}
+
+			// Re-add everything
+			for (auto& b : inserts) {
+				blocks.emplace_back(std::move(b));
+			}
+			inserts.clear();
+
+			for (auto& b : removes_before_this_instruction) {
+				blocks.emplace_back(std::move(b));
+			}
+			removes_before_this_instruction.clear();
+			
+			for (auto& b : replaces) {
+				if (!b.empty()) {
+					blocks.emplace_back(std::move(b));
+				}
+			}
+			replaces.clear();
+
 			[[fallthrough]];
 		case 1:
 			// Level 1 optimizations:
@@ -339,6 +468,10 @@ void Expression::remove(Block&& block) {
 	}
 	for (auto& b : replaces) {
 		blocks.emplace_back(std::move(b));
+	}
+
+	if (!recursive_process.empty()) {
+		this->remove(std::move(recursive_process));
 	}
 }
 
