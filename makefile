@@ -17,7 +17,7 @@ expression.o:
 main.o:
 	$(CXX) $(CXXFLAGS) -c main.cpp
 
-test-suite/run.sh:
+test-suite/run.sh: test-suite/run.bpp test-suite/Test.bpp test-suite/TestRunner.bpp test-suite/TestStats.bpp
 	@cd test-suite && bpp -o run.sh run.bpp
 
 test: test-suite/run.sh
