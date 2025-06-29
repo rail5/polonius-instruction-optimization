@@ -48,7 +48,6 @@
 			return 1
 		fi
 
-		local instructions="@(cat "@this.instruction_file")"
 		local expected_output="@(cat "@this.expected_output_file")"
 		local input_file_contents=""
 		local optimized_output original_output
@@ -67,7 +66,8 @@
 			optimization_level=1
 		fi
 
-		local optimized_instructions="@(${OPTIMIZER} -O${optimization_level} -s "${instructions}")"
+		local optimized_instruction_file=$(mktemp)
+		${OPTIMIZER} -O${optimization_level} -f "@this.instruction_file" > ${optimized_instruction_file}
 
 		# Some checks for the optimizer output:
 		## 1. If the optimization level is >=1, then we know that all INSERT instructions should be paired together,
@@ -75,18 +75,22 @@
 		if [[ $optimization_level -ge 1 ]]; then
 			# Match against the following regex:
 			# (INSERT[^\n]+\n?)*(REMOVE[^\n]+\n?)*(REPLACE[^\n]+\n?)*
-			if ! echo "${optimized_instructions}" | grep -Pzq '(?s)^(INSERT[^\n]+\n)*(REMOVE[^\n]+\n)*(REPLACE[^\n]+\n)*$'; then
+			if ! grep -Pzq '(?s)^(INSERT[^\n]+\n)*(REMOVE[^\n]+\n)*(REPLACE[^\n]+\n)*$' <<<$(cat "${optimized_instruction_file}"); then
 				echo "Error: Optimized instructions do not match the expected format for optimization level ${optimization_level}."
 				@this.status="fail"
 				@this.finishTest
+				rm -f "${temp_file}"
+				rm -f "${optimized_instruction_file}"
 				return 1
 			fi
 		fi
 
-		if [[ -z "$optimized_instructions" ]]; then
+		if [[ ! -s "$optimized_instruction_file" ]]; then
 			echo "Error: Optimization failed."
 			@this.status="fail"
 			@this.finishTest
+			rm -f "${temp_file}"
+			rm -f "${optimized_instruction_file}"
 			return 1
 		fi
 
@@ -95,7 +99,7 @@
 		echo "${input_file_contents}" > "${temp_file}"
 
 		# Get the original output
-		polonius-editor "${temp_file}" -a "${instructions}"
+		polonius-editor "${temp_file}" -f "@this.instruction_file"
 		original_output="@(cat "${temp_file}")"
 
 		rm -f "${temp_file}"
@@ -106,14 +110,17 @@
 			echo "Error: Original output does not match expected output for test '@{this.instruction_file}'."
 			@this.status="fail"
 			@this.finishTest
+			rm -f "${temp_file}"
+			rm -f "${optimized_instruction_file}"
 			return 1
 		fi
 
 		# Get the optimized output
-		polonius-editor "${temp_file}" -a "${optimized_instructions}"
+		polonius-editor "${temp_file}" -f "${optimized_instruction_file}"
 		optimized_output="@(cat "${temp_file}")"
 
 		rm -f "${temp_file}"
+		rm -f "${optimized_instruction_file}"
 
 		# Compare the outputs
 		if [[ "${original_output}" == "${optimized_output}" ]]; then
