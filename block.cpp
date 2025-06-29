@@ -85,6 +85,9 @@ void Block::add(uint64_t start_position, uint64_t end_position) {
  * 		a	e
  */
 void Block::remove(uint64_t start_position, uint64_t end_position) {
+	if (empty()) {
+		return;
+	}
 	uint64_t removeStart = std::max(start_position, this->start_position);
 	uint64_t removeEnd = std::min(end_position, this->end());
 
