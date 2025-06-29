@@ -2,6 +2,7 @@
 #include "expression.h"
 
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <getopt.h>
 
@@ -13,7 +14,7 @@ int main(int argc, char* argv[]) {
 	Expression expression;
 	// getopt
 	int opt;
-	while ((opt = getopt(argc, argv, "O:s:d")) != -1) {
+	while ((opt = getopt(argc, argv, "O:s:df:")) != -1) {
 		switch (opt) {
 			case 'O':
 				expression.set_optimization_level(static_cast<uint8_t>(std::stoi(optarg)));
@@ -31,6 +32,24 @@ int main(int argc, char* argv[]) {
 				if (system("rm -f debug/*.txt") != 0) {
 					std::cerr << "Failed to remove files in 'steps' directory." << std::endl;
 					return 1;
+				}
+				break;
+			case 'f':
+				// Read instructions from a file
+				{
+					std::ifstream file(optarg);
+					if (!file) {
+						std::cerr << "Failed to open file: " << optarg << std::endl;
+						return 1;
+					}
+					// Read the entire file into a single string
+					std::string instructions((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+					file.close();
+					// Parse the instructions
+					if (!parse_instruction_sequence(instructions, &expression)) {
+						std::cerr << "Failed to parse instructions from file: " << optarg << std::endl;
+						return 1;
+					}
 				}
 				break;
 			default:
