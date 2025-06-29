@@ -109,10 +109,23 @@ void Expression::insert(Block&& block) {
 							}
 							removes.clear();
 							for (auto& b : replaces) {
-								if (b.start() >= original_start + left_shift) {
-									b.shift_right(overlap.end - overlap.start + 1);
+								BlockOverlap ov = b.overlap(original_start + left_shift, UINT64_MAX);
+								if (!ov.empty) {
+									Block before_overlap = b;
+									Block from_overlap_start_to_the_end = b;
+									before_overlap.remove(ov.start, before_overlap.end());
+									from_overlap_start_to_the_end.remove(from_overlap_start_to_the_end.start(), ov.start - 1);
+
+									if (!before_overlap.empty()) {
+										blocks.emplace_back(std::move(before_overlap));
+									}
+									if (!from_overlap_start_to_the_end.empty()) {
+										from_overlap_start_to_the_end.shift_right(overlap.end - overlap.start + 1);
+										blocks.emplace_back(std::move(from_overlap_start_to_the_end));
+									}
+								} else {
+									blocks.emplace_back(std::move(b));
 								}
-								blocks.emplace_back(std::move(b));
 							}
 							replaces.clear();
 							
