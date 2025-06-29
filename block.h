@@ -74,6 +74,7 @@ class Block {
 		Block(Block&& other) noexcept; // Move constructor
 
 		Block& operator=(Block&& other) noexcept; // Move assignment operator
+		Block& operator=(const Block& other) = delete; // Copy assignment operator
 
 		std::string get_contents() const;
 
