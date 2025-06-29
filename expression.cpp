@@ -114,7 +114,9 @@ void Expression::insert(Block&& block) {
 									Block before_overlap = b;
 									Block from_overlap_start_to_the_end = b;
 									before_overlap.remove(ov.start, before_overlap.end());
-									from_overlap_start_to_the_end.remove(from_overlap_start_to_the_end.start(), ov.start - 1);
+									if (ov.start > 0) {
+										from_overlap_start_to_the_end.remove(from_overlap_start_to_the_end.start(), ov.start - 1);
+									}
 
 									if (!before_overlap.empty()) {
 										blocks.emplace_back(std::move(before_overlap));
