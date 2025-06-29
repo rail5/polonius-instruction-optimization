@@ -36,3 +36,6 @@ This repository also contains a test suite written in [Bash++](https://bpp.sh) w
  - **2025-05-29**: The original sample from the Instruction Optimization wiki page has been successfully optimized to the expected result.
    - The sequence `REMOVE 0 2`, `INSERT 0 abc` now automatically optimizes to `REPLACE 0 abc`
    - Theorems 0, 1, and 3 have been fully implemented.
+
+ - **2025-06-29**: -O2 optimizations fully implemented
+   - Theorems 0, 1, 3, and 4 have been fully implemented.
