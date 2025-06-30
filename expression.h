@@ -37,6 +37,9 @@ class Expression {
 		uint8_t optimization_level = 0;
 
 		void re_evaluate();
+
+		void _insert(Block&& block);
+		void _remove(Block&& block);
 	public:
 		Expression();
 		explicit Expression(uint8_t optimization_level);

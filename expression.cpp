@@ -28,10 +28,10 @@ void Expression::re_evaluate() {
 	for (auto& block : blocks_copy) {
 		switch (block.get_operator()) {
 			case INSERT:
-				insert(std::move(block));
+				_insert(std::move(block));
 				break;
 			case REMOVE:
-				remove(std::move(block));
+				_remove(std::move(block));
 				break;
 			case REPLACE:
 				replace(std::move(block));
@@ -41,6 +41,16 @@ void Expression::re_evaluate() {
 }
 
 void Expression::insert(Block&& block) {
+	_insert(std::move(block));
+	re_evaluate(); // Guarantees the expression will remain sorted
+}
+
+void Expression::remove(Block&& block) {
+	_remove(std::move(block));
+	re_evaluate(); // Guarantees the expression will remain sorted
+}
+
+void Expression::_insert(Block&& block) {
 	block.set_operator(INSERT);
 	std::deque<Block> inserts_before_this_instruction;
 	std::deque<Block> inserts_after_this_instruction;
@@ -259,7 +269,7 @@ void Expression::insert(Block&& block) {
 	}
 }
 
-void Expression::remove(Block&& block) {
+void Expression::_remove(Block&& block) {
 	block.set_operator(REMOVE);
 	std::deque<Block> inserts;
 	std::deque<Block> removes_before_this_instruction;
