@@ -47,3 +47,4 @@ This repository also contains a test suite written in [Bash++](https://bpp.sh) w
    - We verified that the optimized instructions produced the same result as the original instructions in every case.
    - **Therefore we can say that** $P(\text{failure}) \lt \frac{3}{1,075,933}$ **with 95% confidence,** by the [rule of 3](https://en.wikipedia.org/wiki/Rule_of_three_(statistics)).
    - In light of this, I'm *tentatively* declaring -O2 optimizations to be production-ready.
+      - **Note**: The theorems [outlined in this document](https://github.com/rail5/polonius/wiki/Instruction-Optimization) <u>**are**</u> correct. The only question is whether the code implementing them is completely faithful to the mathematics. So far, it seems to be -- or, the probability that it *isn't* is less than $\frac{3}{1,075,933}$.
