@@ -39,3 +39,11 @@ This repository also contains a test suite written in [Bash++](https://bpp.sh) w
 
  - **2025-06-29**: -O2 optimizations fully implemented
    - Theorems 0, 1, 3, and 4 have been fully implemented.
+
+ - **2025-07-01**: **1 million** tests passed on -O2 optimizations
+   - 1,075,933 tests were randomly generated and executed with zero failures.
+   - Each test consisted of a random set of between 1 and 600 instructions applied to a random file sized between 100KB and 600KB.
+   - These instructions targeted randomized positions in the file, and were equally likely to be `INSERT`, `REMOVE`, or `REPLACE` instructions. All factors -- file size, number of instructions, position of each instruction, type of each instruction -- were uniformly distributed throughout their respective ranges.
+   - We verified that the optimized instructions produced the same result as the original instructions in every case.
+   - **Therefore we can say that** $P(\text{failure}) \lt \frac{3}{1,075,933}$ **with 95% confidence,** by the [rule of 3](https://en.wikipedia.org/wiki/Rule_of_three_(statistics)).
+   - In light of this, I'm *tentatively* declaring -O2 optimizations to be production-ready.
