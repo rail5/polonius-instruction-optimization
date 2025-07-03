@@ -83,6 +83,44 @@
 				rm -f "${optimized_instruction_file}"
 				return 1
 			fi
+			# All of the INSERT instructions must be ordered by position
+			# And all of the REMOVE instructions must be ordered by position
+
+			# For each of the insert instructions:
+			# Verify that the start position is >= the previous start position
+			local previous_insert_position=0
+			while IFS= read -r line; do
+				if [[ $line =~ ^INSERT\ ([0-9]+)\  ]]; then
+					local current_insert_position="${BASH_REMATCH[1]}"
+					if (( current_insert_position < previous_insert_position )); then
+						echo "Error: INSERT instructions are not ordered by position."
+						@this.status="fail"
+						@this.finishTest
+						rm -f "${temp_file}"
+						rm -f "${optimized_instruction_file}"
+						return 1
+					fi
+					previous_insert_position=$current_insert_position
+				fi
+			done < "${optimized_instruction_file}"
+
+			# For each of the remove instructions:
+			# Verify that the start position is >= the previous start position
+			local previous_remove_position=0
+			while IFS= read -r line; do
+				if [[ $line =~ ^REMOVE\ ([0-9]+)\  ]]; then
+					local current_remove_position="${BASH_REMATCH[1]}"
+					if (( current_remove_position < previous_remove_position )); then
+						echo "Error: REMOVE instructions are not ordered by position."
+						@this.status="fail"
+						@this.finishTest
+						rm -f "${temp_file}"
+						rm -f "${optimized_instruction_file}"
+						return 1
+					fi
+					previous_remove_position=$current_remove_position
+				fi
+			done < "${optimized_instruction_file}"
 		fi
 
 		if [[ ! -s "$optimized_instruction_file" ]]; then
